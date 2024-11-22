@@ -1,0 +1,14 @@
+import React from 'react'
+import SolarSystem from '@custom_components/SolarSystem'
+
+const SolarSystemWrapper: React.FC = ({ children }) => {
+  return (
+    <>
+      <SolarSystem />
+      {children}
+    </>
+  )
+}
+
+export default SolarSystemWrapper
+.

@@ -1,43 +1,37 @@
 import type { Metadata } from 'next'
-
 import { cn } from 'src/utilities/cn'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import React from 'react'
-
-import { AdminBar } from '@/components/AdminBar'
 import { Footer } from '@/Footer/Component'
 import { Header } from '@/Header/Component'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
-import { draftMode } from 'next/headers'
-
+import Navbar from '@components/Navbar'
+import CircularGraphic from '@components/CircularGraphic'
 import './globals.css'
+import ClientWrapper from '@/components/ClientWrapper' // Import the client wrapper component
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { isEnabled } = await draftMode()
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const initialStars = 100
+  const initialShootingStars = 10
 
   return (
-    <html className={cn(GeistSans.variable, GeistMono.variable)} lang="en" suppressHydrationWarning>
-      <head>
-        <InitTheme />
-        <link href="/favicon.ico" rel="icon" sizes="32x32" />
-        <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
-      </head>
-      <body>
+    <html lang="en">
+      <body className={cn(GeistMono.variable, GeistSans.variable)}>
         <Providers>
-          <AdminBar
-            adminBarProps={{
-              preview: isEnabled,
-            }}
-          />
-          <LivePreviewListener />
-
+          <InitTheme />
           <Header />
-          {children}
+          <main>
+            <Navbar />
+            <ClientWrapper initialStars={initialStars} initialShootingStars={initialShootingStars}>
+              {children}
+            </ClientWrapper>
+          </main>
           <Footer />
+          <LivePreviewListener />
         </Providers>
       </body>
     </html>

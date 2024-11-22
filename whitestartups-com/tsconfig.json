@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "incremental": true,
-    "jsx": "preserve",
+    "jsx": "preserve", // Ensure this is set to "react" or "react-jsx"
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -36,9 +36,75 @@
       "@/*": [
         "./src/*"
       ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@custom_components/*": [
+        "src/components/Custom_components/*"
+      ], // Ensure this line is present
+      "@custom_pages/*": [
+        "src/custom_pages/*"
+      ],
+      "@styles/*": [
+        "src/styles/*"
+      ],
+      "@workers/*": [
+        "src/workers/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@contexts/*": [
+        "src/contexts/*"
+      ],
+      "@services/*": [
+        "src/services/*"
+      ],
+      "@assets/*": [
+        "src/assets/*"
+      ],
+      "@providers/*": [
+        "src/providers/*"
+      ],
+      "@endpoints/*": [
+        "src/endpoints/*"
+      ],
+      "@plugins/*": [
+        "src/plugins/*"
+      ],
+      "@access/*": [
+        "src/access/*"
+      ],
+      "@fields/*": [
+        "src/fields/*"
+      ],
+      "@blocks/*": [
+        "src/blocks/*"
+      ],
+      "@collections/*": [
+        "src/collections/*"
+      ],
+      "@search/*": [
+        "src/search/*"
+      ],
+      "@app/*": [
+        "src/app/*"
+      ],
+      "@heros/*": [
+        "src/heros/*"
+      ],
+      "@middleware/*": [
+        "src/middleware/*"
+      ],
+      "@localtypes/*": ["src/types/*"],
     }
   },
   "include": [
+    "src",
+    "types",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
@@ -46,6 +112,7 @@
     "next.config.js"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }

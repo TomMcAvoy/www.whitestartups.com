@@ -1,0 +1,18 @@
+import React from 'react'
+import StarFieldContainer from '@custom_components/StarFieldContainer'
+import Star from '@custom_components/Star'
+import ShootingStar from '@custom_components/ShootingStar'
+
+const withStarfield = (WrappedComponent: React.ComponentType) => {
+  return (props: any) => (
+    <>
+      <StarFieldContainer>
+        <Star />
+        <ShootingStar />
+      </StarFieldContainer>
+      <WrappedComponent {...props} />
+    </>
+  )
+}
+
+export default withStarfield

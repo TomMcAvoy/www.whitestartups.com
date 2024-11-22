@@ -1,0 +1,51 @@
+.wrapper {
+  position: relative;
+  width: 500px; /* Adjust size as needed */
+  height: 500px; /* Adjust size as needed */
+  margin: 0 auto;
+  z-index: 10000; /* Ensure z-index is greater than 9999 */
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: transform 1s linear;
+}
+
+.node {
+  position: absolute;
+  width: 100px; /* Adjust size as needed */
+  height: 100px; /* Adjust size as needed */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.node img {
+  width: 100%;
+  height: auto;
+}
+
+.popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 10001; /* Ensure popup is above the graphic */
+}
+
+.popup h2 {
+  margin-top: 0;
+}
+
+.popup button {
+  margin-top: 10px;
+}

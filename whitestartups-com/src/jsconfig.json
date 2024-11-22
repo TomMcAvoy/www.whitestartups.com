@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@custom_components/*": ["src/components/Custom_components/*"],
+      "@custom_pages/*": ["src/custom_pages/*"],
+      "@styles/*": ["src/styles/*"],
+      "@workers/*": ["src/workers/*"]
+    }
+  }
+}
