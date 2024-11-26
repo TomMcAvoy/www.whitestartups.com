@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import axios from 'axios'
-import { authMiddleware } from '@middleware/auth' // Updated import path
 
 const useAuth = () => {
   const [user, setUser] = useState(null)
@@ -11,9 +10,11 @@ const useAuth = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/auth/session')
-        setUser(response.data.user)
+        const response = await axios.get('/api/auth/me')
+        console.log('User info:', response.data)
+        setUser(response.data)
       } catch (error) {
+        console.error('Error checking authentication:', error)
         setUser(null)
       } finally {
         setLoading(false)
@@ -24,7 +25,11 @@ const useAuth = () => {
   }, [])
 
   const signIn = () => {
-    router.push('/api/auth/login')
+    if (typeof window !== 'undefined') {
+      const googleAuthUrl = `${process.env.GOOGLE_AUTH_URL}?response_type=code&client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=/auth/signin&scope=openid%20profile%20email`
+      console.log('Redirecting to Google OAuth URL:', googleAuthUrl)
+      window.location.href = googleAuthUrl
+    }
   }
 
   const signOut = async () => {

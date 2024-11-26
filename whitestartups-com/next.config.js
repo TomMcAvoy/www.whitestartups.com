@@ -1,6 +1,9 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 import redirects from './redirects.js'
 import path from 'path'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const NEXT_PUBLIC_SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 console.log('NEXT_PUBLIC_SERVER_URL:', NEXT_PUBLIC_SERVER_URL)
@@ -20,7 +23,6 @@ const nextConfig = {
     ],
   },
   reactStrictMode: true,
-  redirects,
   webpack: (config) => {
     config.resolve.alias['@components'] = path.resolve('src/components')
     config.resolve.alias['@custom_components'] = path.resolve('src/components/Custom_components')
@@ -46,6 +48,7 @@ const nextConfig = {
     config.resolve.alias['@middleware'] = path.resolve('src/middleware')
     return config
   },
+  redirects,
 }
 
 export default withPayload(nextConfig)

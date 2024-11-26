@@ -1,11 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import { serialize } from 'cookie'
 
-const logoutHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-  res.setHeader('Set-Cookie', [
-    `id_token=; HttpOnly; Path=/; Max-Age=0`,
-    `access_token=; HttpOnly; Path=/; Max-Age=0`,
-  ])
-  res.status(200).json({ message: 'Logged out' })
+const logoutHandler = (req: NextApiRequest, res: NextApiResponse) => {
+  console.log('Logging out user')
+  res.setHeader('Set-Cookie', serialize('id_token', '', { path: '/', httpOnly: true, maxAge: -1 }))
+  res.status(200).json({ message: 'Logout successful' })
 }
 
 export default logoutHandler

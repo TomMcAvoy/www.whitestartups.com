@@ -3,7 +3,7 @@ import React, { useState, DragEvent } from 'react'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import { useRouter } from 'next/router'
-import useAuth from '@hooks/useAuth' // Updated import path
+import useAuth from '@hooks/useAuth'
 
 const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -32,42 +32,47 @@ const UploadPage: React.FC = () => {
   }
 
   if (!user) {
+    console.log('User is not authenticated, redirecting to signin page...')
     return (
       <div>
         <p>You need to be signed in to upload files.</p>
-        <button onClick={signIn}>Sign In</button>
+        <button onClick={() => router.push('/signin')}>Sign In</button>
       </div>
     )
   }
 
   const handleFileUpload = async (file: File) => {
-    const metadataResponse = await axios.post('/api/upload/init', {
-      filename: file.name,
-      size: file.size,
-    })
-
-    const fileMetadata: FileMetadata = metadataResponse.data
-    setMetadata((prevMetadata) => [...prevMetadata, fileMetadata])
-
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * CHUNK_SIZE
-      const end = Math.min(start + CHUNK_SIZE, file.size)
-      const chunk = file.slice(start, end)
-
-      const formData = new FormData()
-      formData.append('id', fileMetadata.id)
-      formData.append('chunkIndex', chunkIndex.toString())
-      formData.append('chunk', chunk)
-
-      await axios.post('/api/upload/chunk', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+    try {
+      const metadataResponse = await axios.post('/api/upload/init', {
+        filename: file.name,
+        size: file.size,
       })
-    }
 
-    await axios.post('/api/upload/complete', { id: fileMetadata.id, filename: file.name })
+      const fileMetadata: FileMetadata = metadataResponse.data
+      setMetadata((prevMetadata) => [...prevMetadata, fileMetadata])
+
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        const chunk = file.slice(start, end)
+
+        const formData = new FormData()
+        formData.append('id', fileMetadata.id)
+        formData.append('chunkIndex', chunkIndex.toString())
+        formData.append('chunk', chunk)
+
+        await axios.post('/api/upload/chunk', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+      }
+
+      await axios.post('/api/upload/complete', { id: fileMetadata.id, filename: file.name })
+    } catch (error) {
+      console.error('Error uploading file:', error)
+    }
   }
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {

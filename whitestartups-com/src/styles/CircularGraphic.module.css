@@ -3,7 +3,7 @@
   width: 500px; /* Adjust size as needed */
   height: 500px; /* Adjust size as needed */
   margin: 0 auto;
-  z-index: 10000; /* Ensure z-index is greater than 9999 */
+  z-index: 100000; /* Ensure z-index is greater than 9999 */
 }
 
 .container {
@@ -39,7 +39,7 @@
   padding: 20px;
   border: 1px solid #ccc;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 10001; /* Ensure popup is above the graphic */
+  z-index: 100001; /* Ensure popup is above the graphic */
 }
 
 .popup h2 {

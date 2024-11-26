@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "incremental": true,
-    "jsx": "preserve", // Ensure this is set to "react" or "react-jsx"
+    "jsx": "preserve", // Ensure this is set to "preserve"
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -40,8 +40,8 @@
         "src/components/*"
       ],
       "@custom_components/*": [
-        "src/components/Custom_components/*"
-      ], // Ensure this line is present
+        "./src/components/Custom_components/*" // Corrected path
+      ],
       "@custom_pages/*": [
         "src/custom_pages/*"
       ],
@@ -99,11 +99,14 @@
       "@middleware/*": [
         "src/middleware/*"
       ],
-      "@localtypes/*": ["src/types/*"],
+      "@localtypes/*": [
+        "src/types/*"
+      ]
     }
   },
   "include": [
     "src",
+    "src/pages/**/*.tsx",
     "types",
     "**/*.ts",
     "**/*.tsx",

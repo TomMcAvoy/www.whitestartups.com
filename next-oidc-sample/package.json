@@ -1,0 +1,36 @@
+{
+  "name": "next-oidc-sample",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "cookie": "^1.0.2",
+    "cookies-next": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "iron-session": "^8.0.4",
+    "lucia-auth": "^1.8.0",
+    "next": "15.0.3",
+    "next-iron-session": "^4.2.0",
+    "oidc-client-ts": "^3.1.0",
+    "openid-client": "^6.1.4",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@9.13.2+sha512.88c9c3864450350e65a33587ab801acf946d7c814ed1134da4a924f6df5a2120fd36b46aab68f7cd1d413149112d53c7db3a4136624cfd00ff1846a0c6cef48a"
+}

@@ -1,5 +1,14 @@
+import { NextRequest, NextResponse } from 'next/server'
 import { NextApiRequest, NextApiResponse } from 'next'
 import jwt, { Secret } from 'jsonwebtoken'
+
+export function middleware(req: NextRequest) {
+  const token = req.cookies.get('payload_token')
+  if (!token) {
+    return NextResponse.redirect('/payload_login')
+  }
+  return NextResponse.next()
+}
 
 export const authMiddleware = (req: NextApiRequest, res: NextApiResponse, next: () => void) => {
   const idToken = req.cookies.id_token

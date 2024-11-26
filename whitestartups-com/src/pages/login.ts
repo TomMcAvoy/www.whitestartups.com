@@ -1,4 +1,3 @@
-import { NextApiRequest, NextApiResponse } from 'next'
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 
 const settings = {
