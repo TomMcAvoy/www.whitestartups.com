@@ -1,6 +1,6 @@
-import { IronSession, SessionOptions, getIronSession } from "iron-session";
 import { NextApiRequest, NextApiResponse } from "next";
 import { NextRequest, NextResponse } from "next/server";
+import session from "next-session";
 
 // Ensure there are no references to next-auth or lucia
 
@@ -38,27 +38,22 @@ export const defaultSession: SessionData = {
   userInfo: undefined,
 };
 
-export const sessionOptions: SessionOptions = {
-  password: "complex_password_at_least_32_characters_long",
-  cookieName: "next_js_session",
-  cookieOptions: {
+const sessionOptions = {
+  name: "next.js.session",
+  secret: process.env.SECRET_COOKIE_PASSWORD || "default_password",
+  cookie: {
     secure: process.env.NODE_ENV === "production",
   },
-  ttl: 60 * 60 * 24 * 7, // 1 week
 };
+
+export const local_session = session(sessionOptions);
 
 export async function getSession(
   req: NextApiRequest | NextRequest,
   res: NextApiResponse | NextResponse
-): Promise<IronSession<SessionData>> {
-  if (!req || !req.headers) {
-    throw new Error("Request headers are not available");
-  }
-  const session = (await getIronSession(
-    req as NextApiRequest,
-    res as NextApiResponse,
-    sessionOptions
-  )) as IronSession<SessionData>;
+): Promise<SessionData> {
+  await local_session(req as unknown, res as unknown);
+  const session = (req as unknown as any).session as SessionData;
   if (!session.isLoggedIn) {
     session.access_token = defaultSession.access_token;
     session.userInfo = defaultSession.userInfo;

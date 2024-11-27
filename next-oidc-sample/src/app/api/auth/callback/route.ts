@@ -1,8 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { fetchOpenIdConfiguration } from "@/utils";
+import { local_session } from "@/middleware/session";
+import { NextApiResponse } from "next";
 
 const handler = async (req: NextRequest) => {
   console.log("Callback route invoked"); // Debug log
+
+  // Initialize session
+  const apiResponse = NextResponse.next() as unknown as NextApiResponse;
+
+  await local_session(req as unknown, apiResponse);
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
@@ -18,6 +25,15 @@ const handler = async (req: NextRequest) => {
   const openIdConfig = await fetchOpenIdConfiguration();
   const tokenEndpoint = openIdConfig.token_endpoint;
 
+  const codeVerifier = (req as unknown as any).session.codeVerifier;
+
+  if (!codeVerifier) {
+    return NextResponse.json(
+      { error: "Missing code verifier" },
+      { status: 400 }
+    );
+  }
+
   // Exchange the authorization code for tokens
   const tokenResponse = await fetch(tokenEndpoint, {
     method: "POST",
@@ -30,6 +46,7 @@ const handler = async (req: NextRequest) => {
       client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
       redirect_uri: process.env.GOOGLE_REDIRECT_URI || "",
       grant_type: "authorization_code",
+      code_verifier: codeVerifier,
     }),
   });
 
@@ -42,21 +59,11 @@ const handler = async (req: NextRequest) => {
     );
   }
 
-  // Store the tokens in the session or database
-  // For simplicity, we'll store them in a cookie
-  const response = NextResponse.redirect("/");
-  response.cookies.set("access_token", tokenData.access_token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-  });
-  response.cookies.set("id_token", tokenData.id_token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-  });
+  // Store the tokens in the session
+  (req as unknown as any).session.access_token = tokenData.access_token;
+  (req as unknown as any).session.id_token = tokenData.id_token;
 
-  return response;
+  return NextResponse.redirect("/");
 };
 
 export { handler as GET };

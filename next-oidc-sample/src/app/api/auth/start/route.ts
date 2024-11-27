@@ -1,45 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import {
   fetchOpenIdConfiguration,
   generateCodeVerifier,
   generateCodeChallenge,
 } from "@/utils";
-import session from "@/middleware/session"; // Changed import
-import { NextApiRequest, NextApiResponse } from "next";
-import { withIronSession } from "next-iron-session";
-
-interface NextRequestWithSession extends NextRequest {
-  session: {
-    state: string;
-    codeVerifier: string;
-    get: (key: string) => string | undefined;
-    set: (key: string, value: string) => void;
-    save: () => Promise<void>;
-  };
-}
+import { withSessionMiddleware } from "@/middleware/session";
+import { NextApiResponse } from "next";
 
 async function postHandler(req: NextRequest) {
   console.log("Received request to /api/auth/start");
 
-  // Convert NextRequest to NextApiRequest
-  const apiRequest = req as unknown as NextApiRequest;
-  const apiResponse = NextResponse.next() as unknown as NextApiResponse;
-
   // Initialize session
-  await new Promise<void>((resolve, reject) => {
-    session(apiRequest, apiResponse, (err: unknown) => {
-      if (err) {
-        console.error("Session error:", err);
-        return reject(err);
-      }
-      resolve();
-    });
-  });
+  const apiResponse = NextResponse.next();
 
-  const apiReqWithSession = apiRequest as unknown as NextRequestWithSession;
+  await withSessionMiddleware(req as any, apiResponse);
 
-  console.log("Session after initialization:", apiReqWithSession.session);
+  console.log("Session after initialization:", (req as any).session);
 
   const codeVerifier = generateCodeVerifier();
   const state = uuidv4();
@@ -70,27 +47,16 @@ async function postHandler(req: NextRequest) {
     code_challenge_method,
   }).toString()}`;
 
-  apiReqWithSession.session.state = state;
-  apiReqWithSession.session.codeVerifier = codeVerifier;
+  (req as any).session.state = state;
+  (req as any).session.codeVerifier = codeVerifier;
 
-  console.log("Session state set:", apiReqWithSession.session.state);
-  console.log(
-    "Session codeVerifier set:",
-    apiReqWithSession.session.codeVerifier
-  );
+  console.log("Session state set:", (req as any).session.state);
+  console.log("Session codeVerifier set:", (req as any).session.codeVerifier);
   console.log("Authorization URL:", authorizationUrl);
 
-  await apiReqWithSession.session.save();
+  await (req as any).session.save();
 
   return NextResponse.json({ url: authorizationUrl });
 }
 
-export const POST = withIronSession(postHandler, {
-  password:
-    process.env.SECRET_COOKIE_PASSWORD ||
-    "complex_password_at_least_32_characters_long",
-  cookieName: "next-iron-session",
-  cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
-  },
-});
+export const POST = postHandler;
