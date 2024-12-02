@@ -1,47 +1,49 @@
-// app/api/auth/session/route.ts
+// src/app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
-  withSession,
   createSession,
+  getSession,
+  updateSession,
   deleteSession,
-  clearSessionCookie,
   setSessionCookie,
+  clearSessionCookie,
 } from "@/middleware/redis-store";
-import { createContext } from "@/middleware/context";
 
 export async function GET(request: NextRequest) {
-  const context = await createContext(request, NextResponse.next(), {
-    enhanceContext: (ctx) => {
-      ctx.request = request;
-      ctx.response = NextResponse.next();
-      return Promise.resolve();
-    },
-  });
-  const { session } = await withSession(context);
+  const sessionIdCookie = request.cookies.get("session_id");
+  if (!sessionIdCookie) {
+    return NextResponse.json({ error: "No session" }, { status: 401 });
+  }
+  const sessionId = sessionIdCookie.value;
+  const session = await getSession(sessionId);
   return NextResponse.json({ session });
 }
 
 export async function POST(request: NextRequest) {
   const data = await request.json();
-  const { sessionId } = await createSession(data);
-  const response = NextResponse.json({ success: true });
+  const { sessionId, sessionData } = await createSession(data);
+  const response = NextResponse.json({ success: true, sessionData });
   return setSessionCookie(response, sessionId);
 }
 
-export async function DELETE(request: NextRequest) {
-  const context = await createContext(request, NextResponse.next(), {
-    enhanceContext: (ctx) => {
-      ctx.request = request;
-      ctx.response = NextResponse.next();
-      return Promise.resolve();
-    },
-  });
-  const { sessionId } = await withSession(context);
-
-  if (sessionId) {
-    await deleteSession(sessionId);
+export async function PUT(request: NextRequest) {
+  const sessionIdCookie = request.cookies.get("session_id");
+  if (!sessionIdCookie) {
+    return NextResponse.json({ error: "No session" }, { status: 401 });
   }
+  const sessionId = sessionIdCookie.value;
+  const data = await request.json();
+  await updateSession(sessionId, data);
+  return NextResponse.json({ success: true });
+}
 
+export async function DELETE(request: NextRequest) {
+  const sessionIdCookie = request.cookies.get("session_id");
+  if (!sessionIdCookie) {
+    return NextResponse.json({ error: "No session" }, { status: 401 });
+  }
+  const sessionId = sessionIdCookie.value;
+  await deleteSession(sessionId);
   const response = NextResponse.json({ success: true });
   return clearSessionCookie(response);
 }

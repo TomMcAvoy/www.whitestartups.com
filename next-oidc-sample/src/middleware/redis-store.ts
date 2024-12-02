@@ -1,34 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+// src/middleware/redis-store.ts
+import { Redis } from "@upstash/redis";
+import { SessionData } from "@/types/session-types";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, RedisClientType } from "redis";
 
 // Initialize Redis client
-const client = createClient({
-  url: process.env.REDIS_URL,
-  // ...other options...
+const redisClient = new Redis({
+  url: process.env.UPSTASH_REDIS_URL,
+  token: process.env.UPSTASH_REDIS_TOKEN,
 });
-
-client.on("error", (err) => console.log("Redis Client Error", err));
-
-(async () => {
-  await client.connect();
-})();
 
 // Redis Store implementation
 export class RedisStore {
-  private client: RedisClientType;
+  private client: Redis;
 
-  constructor(client: RedisClientType) {
+  constructor(client: Redis) {
     this.client = client;
   }
 
-  async get(sid: string): Promise<any> {
+  async get(sid: string): Promise<SessionData | null> {
     const data = await this.client.get(`sess:${sid}`);
     return data ? JSON.parse(data) : null;
   }
 
-  async set(sid: string, sess: any): Promise<void> {
+  async set(sid: string, sess: SessionData): Promise<void> {
     await this.client.set(`sess:${sid}`, JSON.stringify(sess));
   }
 
@@ -37,44 +31,7 @@ export class RedisStore {
   }
 }
 
-export interface RequestWithSession extends NextRequest {
-  session: {
-    id?: string;
-    user?: {
-      id: string;
-      name: string;
-      email: string;
-    };
-    access_token?: string;
-    id_token?: string;
-    state?: string;
-    codeVerifier?: string;
-    save: () => Promise<void>;
-    destroy: (callback: (err: any) => void) => void;
-    [key: string]: any;
-  };
-}
-
-// Session middleware
-export async function withSession(request: NextRequest): Promise<{
-  session: RequestWithSession["session"] | null;
-  sessionId: string | null;
-}> {
-  const sessionId = request.cookies.get("session_id")?.value;
-  if (!sessionId) {
-    return { session: null, sessionId: null };
-  }
-
-  const sessionData = await client.get(`sess:${sessionId}`);
-  if (!sessionData) {
-    return { session: null, sessionId: null };
-  }
-
-  const parsedSession = JSON.parse(
-    sessionData
-  ) as RequestWithSession["session"];
-  return { session: parsedSession, sessionId };
-}
+export const redisStore = new RedisStore(redisClient);
 
 // Generate a UUID using a supported method
 function generateUUID() {
@@ -88,39 +45,47 @@ function generateUUID() {
 // Session CRUD operations
 export async function createSession<T>(
   data: T
-): Promise<{ sessionId: string; sessionData: any }> {
+): Promise<{ sessionId: string; sessionData: SessionData }> {
   const sessionId = generateUUID();
-  const sessionData = {
+  const sessionData: SessionData = {
     ...data,
     save: async () => {
-      await client.set(`sess:${sessionId}`, JSON.stringify(data));
+      await redisClient.set(`sess:${sessionId}`, JSON.stringify(sessionData));
     },
-    destroy: async () => {
-      await client.del(`sess:${sessionId}`);
+    destroy: async (callback: (err: Error | null) => void) => {
+      try {
+        await redisClient.del(`sess:${sessionId}`);
+        callback(null);
+      } catch (err) {
+        callback(err);
+      }
     },
   };
 
-  await client.set(`sess:${sessionId}`, JSON.stringify(data));
+  await redisClient.set(`sess:${sessionId}`, JSON.stringify(sessionData));
   return { sessionId, sessionData };
 }
 
-export async function deleteSession(
-  sessionId: string,
-  prefix: string = "sess:"
-): Promise<void> {
-  await client.del(`${prefix}${sessionId}`);
+export async function getSession(
+  sessionId: string
+): Promise<SessionData | null> {
+  return await redisStore.get(sessionId);
 }
 
-// Update the updateSessionData function definition
-export async function updateSessionData(
+export async function updateSession(
   sessionId: string,
-  sessionData: RequestWithSession["session"],
-  ttl: number = 86400
+  data: Partial<SessionData>
 ): Promise<void> {
-  if (!sessionId) {
-    throw new Error("Session ID is required");
+  const sessionData = await redisStore.get(sessionId);
+  if (!sessionData) {
+    throw new Error("Session not found");
   }
-  await client.setEx(`sess:${sessionId}`, ttl, JSON.stringify(sessionData));
+  Object.assign(sessionData, data);
+  await redisStore.set(sessionId, sessionData);
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  await redisStore.destroy(sessionId);
 }
 
 // Cookie management
@@ -144,105 +109,21 @@ export async function clearSessionCookie(
   return response;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function withSessionMiddleware(req: NextRequest): Promise<void> {
-  const { session, sessionId } = await withSession(req);
-  if (session && sessionId) {
-    const enhancedSession: RequestWithSession["session"] = {
-      ...session,
-      save: async () => {
-        await client.set(`sess:${sessionId}`, JSON.stringify(session));
-      },
-      destroy: (callback: (err: any) => void) => {
-        client
-          .del(`sess:${sessionId}`)
-          .then(() => callback(null))
-          .catch(callback);
-      },
-    };
-
-    (req as RequestWithSession).session = enhancedSession;
+// Middleware to retrieve session from request
+export async function withSession(request: NextRequest): Promise<{
+  session: SessionData | null;
+  sessionId: string | null;
+}> {
+  const sessionId = request.cookies.get("session_id")?.value;
+  if (!sessionId) {
+    return { session: null, sessionId: null };
   }
+
+  const sessionData = await redisClient.get(`sess:${sessionId}`);
+  if (!sessionData) {
+    return { session: null, sessionId: null };
+  }
+
+  const parsedSession = JSON.parse(sessionData) as SessionData;
+  return { session: parsedSession, sessionId };
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const sessionHandler = async (
-  req: RequestWithSession
-): Promise<NextResponse> => {
-  if (!req.session) {
-    return NextResponse.json({ error: "No session" }, { status: 401 });
-  }
-
-  // Now TypeScript knows req.session.destroy exists
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-    }
-  });
-
-  return NextResponse.json({ success: true });
-};
-
-// Example function to create a session
-export const createSessionHandler = async <T>(
-  req: RequestWithSession,
-  data: T
-) => {
-  await withSessionMiddleware(req);
-  req.session.data = data;
-  await req.session.save();
-
-  return NextResponse.json({
-    message: "Session created",
-    data: req.session.data,
-  });
-};
-
-// Example function to read a session
-export const readSession = async (req: RequestWithSession) => {
-  await withSessionMiddleware(req);
-  if (!req.session.data) {
-    return NextResponse.json({ message: "Session not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({
-    message: "Session data",
-    data: req.session.data,
-  });
-};
-
-// Example function to update a session
-export const updateSession = async <T>(
-  req: RequestWithSession,
-  res: NextResponse,
-  data: T
-) => {
-  await withSessionMiddleware(req);
-  req.session.data = { ...req.session.data, ...data };
-  await req.session.save();
-
-  return NextResponse.json({
-    message: "Session updated",
-    data: req.session.data,
-  });
-};
-
-// Example function to delete a session
-export const deleteSessionHandler = async (req: RequestWithSession) => {
-  await withSessionMiddleware(req);
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-    }
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const anotherRes = NextResponse.json({
-    message: "Session deleted",
-  });
-  return NextResponse.json({
-    message: "Session deleted",
-  });
-};
-
-export { client as redisClient };

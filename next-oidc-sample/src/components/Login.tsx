@@ -1,6 +1,11 @@
 "use client";
 import useSession from "@/hooks/useSession";
 import React from "react";
+import { SessionData } from "@/types/session-types";
+
+interface LoginProps {
+  session: SessionData | null;
+}
 
 const handleLogin = async () => {
   try {
@@ -43,8 +48,8 @@ const handleLogout = async () => {
   }
 };
 
-const Login = () => {
-  const { session, loading } = useSession();
+const Login: React.FC<LoginProps> = ({ session }) => {
+  const { loading } = useSession();
   console.log("Session:", session);
   console.log("Loading:", loading);
 

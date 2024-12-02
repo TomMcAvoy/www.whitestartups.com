@@ -2,7 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { withContext } from "@/middleware/context";
-import { deleteSession } from "@/middleware/session-manager";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const handler = withContext(async (contextReq) => {
   if (!contextReq.context.session) {
@@ -12,7 +17,7 @@ const handler = withContext(async (contextReq) => {
 
   const sessionId = contextReq.context.session.id;
   if (sessionId) {
-    await deleteSession(sessionId);
+    await redis.del(sessionId);
   } else {
     return NextResponse.json(
       { error: "Session ID is missing" },

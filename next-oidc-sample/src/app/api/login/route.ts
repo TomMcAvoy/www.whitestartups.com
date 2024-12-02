@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateUser } from "@/middleware/auth"; // Corrected path
-import { sessionManager } from "@/middleware/session-manager"; // Correct import for sessionManager
+import { Redis } from "@upstash/redis";
 
 /**
  * Handles the login process for the application.
@@ -12,6 +12,11 @@ import { sessionManager } from "@/middleware/session-manager"; // Correct import
  * @param req - The NextRequest object containing the request data.
  * @returns The NextResponse object with the session information or an error response.
  */
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
 
@@ -23,10 +28,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Create session
-  const sessionResponse = await sessionManager.createSession({
-    id: user.id,
-    email: user.email,
-  });
+  const sessionId = req.cookies.get("session_id")?.value; // Ensure sessionId is a string
+  if (sessionId) {
+    const sessionData = await redis.get(sessionId);
+    // ...existing code...
+  }
 
   return NextResponse.json({ session: sessionResponse });
 }
