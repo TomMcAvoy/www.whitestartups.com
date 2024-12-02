@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextApiRequest } from "next";
 import { NextRequest } from "next/server";
 import { Request } from "express";

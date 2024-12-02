@@ -1,15 +1,24 @@
 import { NextResponse, NextRequest } from "next/server";
 import { fetchOpenIdConfiguration } from "@/utils";
-import { local_session } from "@/middleware/session";
-import { NextApiResponse } from "next";
+import {
+  createContext,
+  addCodeVerifier,
+  ensureSession,
+  ContextRequest,
+} from "@/middleware/context";
+import { Session } from "@/middleware/session"; // Import Session interface
 
 const handler = async (req: NextRequest) => {
   console.log("Callback route invoked"); // Debug log
 
-  // Initialize session
-  const apiResponse = NextResponse.next() as unknown as NextApiResponse;
-
-  await local_session(req as unknown, apiResponse);
+  const res = NextResponse.next();
+  const contextReq = await createContext(req, res, {
+    enhanceContext: async (context) => {
+      await addCodeVerifier(context);
+      await ensureSession(context);
+    },
+  });
+  const context = contextReq.context as ContextRequest["context"];
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
@@ -25,7 +34,7 @@ const handler = async (req: NextRequest) => {
   const openIdConfig = await fetchOpenIdConfiguration();
   const tokenEndpoint = openIdConfig.token_endpoint;
 
-  const codeVerifier = (req as unknown as any).session.codeVerifier;
+  const codeVerifier = context.codeVerifier as string; // Ensure codeVerifier is typed as string
 
   if (!codeVerifier) {
     return NextResponse.json(
@@ -59,11 +68,15 @@ const handler = async (req: NextRequest) => {
     );
   }
 
-  // Store the tokens in the session
-  (req as unknown as any).session.access_token = tokenData.access_token;
-  (req as unknown as any).session.id_token = tokenData.id_token;
+  // Ensure context.session is defined before storing tokens
+  if (!context.session) {
+    context.session = { id: context.sessionId || "" } as Session;
+  }
+  context.session.access_token = tokenData.access_token;
+  context.session.jwt = tokenData.access_token; // Assign session.jwt equal to access_token
+  context.id_token = tokenData.id_token; // Store id_token in the context
 
   return NextResponse.redirect("/");
 };
 
-export { handler as GET };
+export const GET = handler;

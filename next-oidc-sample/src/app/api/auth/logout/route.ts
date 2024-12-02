@@ -1,24 +1,29 @@
-import { NextResponse, NextRequest } from "next/server";
-import { withSessionMiddleware } from "@/middleware/session";
-import { NextApiResponse } from "next";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { NextRequest, NextResponse } from "next/server";
+import { withContext } from "@/middleware/context";
+import { deleteSession } from "@/middleware/session-manager";
 
-const handler = async (req: NextRequest) => {
-  console.log("Logout route invoked"); // Debug log
+const handler = withContext(async (contextReq) => {
+  if (!contextReq.context.session) {
+    contextReq.context.session = {}; // Ensure a mock session is in place
+    return NextResponse.json({ error: "No session found" }, { status: 404 });
+  }
 
-  // Initialize session
-  const apiResponse = NextResponse.next();
+  const sessionId = contextReq.context.session.id;
+  if (sessionId) {
+    await deleteSession(sessionId);
+  } else {
+    return NextResponse.json(
+      { error: "Session ID is missing" },
+      { status: 400 }
+    );
+  }
 
-  await withSessionMiddleware(req as any, apiResponse);
+  return NextResponse.json({ success: true });
+});
 
-  // Destroy the session
-  (req as any).session.destroy((err: any) => {
-    if (err) {
-      console.error("Failed to destroy session:", err);
-      return NextResponse.json({ error: "Failed to logout" }, { status: 500 });
-    }
-  });
-
-  return NextResponse.redirect("/");
+export const GET = async (req: NextRequest) => {
+  const resolvedHandler = await handler;
+  return resolvedHandler(req, new NextResponse());
 };
-
-export { handler as GET };

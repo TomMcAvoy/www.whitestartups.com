@@ -1,4 +1,6 @@
-import { SessionOptions as ExpressSessionOptions } from "express-session";
+/* eslint-disable @typescript-eslint/no-empty-interface */
+// Remove the unused import
+// import { SessionOptions as ExpressSessionOptions } from "express-session";
 
 declare module "next" {
   interface NextApiRequest {
@@ -31,5 +33,6 @@ declare module "express-session" {
     destroy: (callback: (err: unknown) => void) => void;
   }
 
-  export interface SessionOptions extends ExpressSessionOptions {}
+  // Remove the empty interface declaration
+  // export interface SessionOptions extends ExpressSessionOptions {}
 }

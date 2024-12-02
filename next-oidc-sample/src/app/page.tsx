@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Login from "@/components/Login";
-import { SessionData } from "@/lib";
+import { SessionData } from "@/types/session";
 import { generateCodeVerifier } from "@/utils";
 
 export default function Home() {
   const [codeVerifier, setCodeVerifier] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [session, setSession] = useState<SessionData | null>(null);
 
   useEffect(() => {
@@ -20,7 +19,6 @@ export default function Home() {
     setCodeVerifier(verifier);
 
     // Fetch session data client-side
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async function fetchSession() {
       const res = await fetch("/api/session", {
         method: "GET",

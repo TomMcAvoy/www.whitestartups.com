@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse, NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -5,18 +7,56 @@ import {
   generateCodeVerifier,
   generateCodeChallenge,
 } from "@/utils";
-import { withSessionMiddleware } from "@/middleware/session";
-import { NextApiResponse } from "next";
+import { withSession, createSession } from "@/middleware/redis-store";
+import { createContext } from "@/middleware/context";
+
+interface SessionData {
+  state: string;
+  codeVerifier: string;
+  [key: string]: any;
+}
 
 async function postHandler(req: NextRequest) {
   console.log("Received request to /api/auth/start");
 
   // Initialize session
-  const apiResponse = NextResponse.next();
+  const res = NextResponse.next();
 
-  await withSessionMiddleware(req as any, apiResponse);
+  const context = await createContext(req, res, {
+    enhanceContext: (ctx) => {
+      ctx.request = req;
+      ctx.response = res;
+      return Promise.resolve();
+    },
+  });
 
-  console.log("Session after initialization:", (req as any).session);
+  let { session } = (await withSession(context)) as {
+    session: SessionData | null;
+  };
+
+  // If no session exists, create one
+  if (!session) {
+    const { sessionId } = await createSession({});
+    const newContext = await createContext(req, res, {
+      enhanceContext: (ctx) => {
+        ctx.request = req;
+        ctx.response = res;
+        ctx.sessionId = sessionId;
+        return Promise.resolve();
+      },
+    });
+    ({ session } = (await withSession(newContext)) as {
+      session: SessionData | null;
+    });
+  }
+
+  // Now we can safely assert that session exists
+  if (!session) {
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    );
+  }
 
   const codeVerifier = generateCodeVerifier();
   const state = uuidv4();
@@ -47,16 +87,16 @@ async function postHandler(req: NextRequest) {
     code_challenge_method,
   }).toString()}`;
 
-  (req as any).session.state = state;
-  (req as any).session.codeVerifier = codeVerifier;
+  session.state = state;
+  session.codeVerifier = codeVerifier;
 
-  console.log("Session state set:", (req as any).session.state);
-  console.log("Session codeVerifier set:", (req as any).session.codeVerifier);
+  console.log("Session state set:", session.state);
+  console.log("Session codeVerifier set:", session.codeVerifier);
   console.log("Authorization URL:", authorizationUrl);
 
-  await (req as any).session.save();
+  await session.save();
 
-  return NextResponse.json({ url: authorizationUrl });
+  return res;
 }
 
 export const POST = postHandler;

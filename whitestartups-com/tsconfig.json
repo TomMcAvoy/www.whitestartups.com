@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": ".", // Base directory for non-relative module names
+    "rootDir": "./src",
     "esModuleInterop": true,
     "target": "es6",
     "lib": [
@@ -112,7 +113,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "redirects.js",
-    "next.config.js"
+    "next.config.js",
+    "src/pages/login.tsx"
   ],
   "exclude": [
     "node_modules",

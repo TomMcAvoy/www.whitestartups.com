@@ -23,10 +23,12 @@
     "openid-client": "^6.1.4",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
+    "redis": "^4.7.0",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@types/connect-redis": "^0.0.23",
+    "@types/express": "^4.17.13",
     "@types/express-session": "^1.18.1",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -35,8 +37,7 @@
     "eslint-config-next": "15.0.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "@types/express": "^4.17.13"
+    "typescript": "^5"
   },
   "packageManager": "pnpm@9.13.2+sha512.88c9c3864450350e65a33587ab801acf946d7c814ed1134da4a924f6df5a2120fd36b46aab68f7cd1d413149112d53c7db3a4136624cfd00ff1846a0c6cef48a"
 }

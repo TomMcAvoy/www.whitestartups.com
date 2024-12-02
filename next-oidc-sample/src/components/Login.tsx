@@ -28,9 +28,11 @@ const handleLogin = async () => {
 const handleLogout = async () => {
   try {
     console.log("Starting logout process...");
-    const response = await fetch("/auth/logout");
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
     const data = await response.json();
-    console.log("Response from /auth/logout:", data);
+    console.log("Response from /api/auth/logout:", data);
 
     if (!data.url) {
       throw new Error("No URL in response");
