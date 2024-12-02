@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// ...existing code...
 export interface SessionData {
   id?: string;
   user?: {

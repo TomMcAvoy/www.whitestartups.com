@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "redis";
+import { createClient, RedisClientType } from "redis";
 
 // Initialize Redis client
 const client = createClient({
@@ -17,9 +17,9 @@ client.on("error", (err) => console.log("Redis Client Error", err));
 
 // Redis Store implementation
 export class RedisStore {
-  private client: typeof client;
+  private client: RedisClientType;
 
-  constructor(client: typeof client) {
+  constructor(client: RedisClientType) {
     this.client = client;
   }
 

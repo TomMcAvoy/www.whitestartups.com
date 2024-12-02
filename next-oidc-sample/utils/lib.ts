@@ -5,10 +5,11 @@ import {
   deleteSession as deleteSessionData,
   RequestWithSession,
   redisClient,
-} from "../middleware/redis-store";
+} from "@/middleware/redis-store";
 import { NextRequest, NextResponse } from "next/server";
 import applySession from "next-session";
-import { SessionData } from "../types/session";
+import { SessionData } from "@/types/session";
+import { RequestContext } from "@/middleware/context";
 
 // Ensure there are no references to next-auth or lucia
 
@@ -64,6 +65,8 @@ export async function setSession(
   const sessionData = {
     ...context.session,
     ...data,
+    save: context.session.save,
+    destroy: context.session.destroy,
   };
 
   await updateSessionDataInStore(sessionId, sessionData, 86400);

@@ -50,7 +50,7 @@ const nextConfig = {
     config.resolve.alias["@app"] = path.resolve("src/app");
     config.resolve.alias["@heros"] = path.resolve("src/heros");
     config.resolve.alias["@middleware"] = path.resolve("src/middleware");
-    config.resolve.alias["@bff"] = path.resolve("src/bff");
+    config.resolve.alias["@bff"] = path.resolve("src/middleware/bff");
 
     return config;
   },

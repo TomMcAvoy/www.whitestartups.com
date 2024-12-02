@@ -6,7 +6,7 @@ import { deleteSession } from "@/middleware/session-manager";
 
 const handler = withContext(async (contextReq) => {
   if (!contextReq.context.session) {
-    contextReq.context.session = {}; // Ensure a mock session is in place
+    contextReq.context.session = { id: "mock-session-id" }; // Ensure a mock session is in place
     return NextResponse.json({ error: "No session found" }, { status: 404 });
   }
 
