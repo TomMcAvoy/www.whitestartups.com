@@ -25,7 +25,8 @@ export async function authenticateUser(
 }
 
 export async function authMiddleware(request: NextRequest) {
-  const { session, sessionId } = await getSession(request);
+  const sessionId = request.cookies.get("sessionId")?.value;
+  const session = sessionId ? await getSession(sessionId) : null;
 
   // Skip authentication for public paths
   const publicPaths = ["/api/auth/login", "/api/auth/callback"];
