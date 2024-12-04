@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
@@ -18,6 +19,7 @@ export interface Session {
   id_token?: string;
   state?: string;
   codeVerifier?: string;
+  tenant_id?: string; // Add tenant_id property
   [key: string]: unknown;
 }
 
@@ -33,11 +35,13 @@ export class SessionData implements Session {
   id_token?: string;
   state?: string;
   codeVerifier?: string;
+  tenant_id?: string; // Add tenant_id property
   [key: string]: unknown;
 
   constructor(data: Session) {
     this.authenticated = data.authenticated;
     this.id = data.id;
+    this.tenant_id = data.tenant_id; // Initialize tenant_id
     // ...initialize other properties...
   }
 

@@ -116,10 +116,6 @@ export async function withSession(request: NextRequest): Promise<{
   return { session: sessionData, sessionId };
 }
 
-export interface Session extends SessionData {
-  // ...other session properties...
-}
-
 export async function addCodeVerifier(context: RequestContext): Promise<void> {
   context.codeVerifier =
     context.req.headers.get("x-code-verifier") || undefined;

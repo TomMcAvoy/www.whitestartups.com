@@ -1,45 +1,68 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { fetchOpenIdConfiguration } from "@/utils";
-import { setCookie } from "cookies-next";
+import { createSession } from "@/middleware/redis-store";
+import { generateRandomState } from "@/utils/oidc-utils";
 
-const handler = async (req: NextRequest) => {
-  if (req.method !== "POST") {
-    return new NextResponse(null, { status: 405 }); // Method Not Allowed
-  }
+export const dynamic = "force-dynamic";
 
-  const { code_challenge } = await req.json();
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const state = generateRandomState();
 
-  if (!code_challenge) {
+    const { sessionId, sessionData } = await createSession({
+      state,
+      created: new Date().toISOString(),
+    });
+
+    const response = NextResponse.json({
+      session: sessionData,
+      sessionId,
+    });
+
+    response.cookies.set("sessionId", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Missing code challenge" },
-      { status: 400 }
+      { error: "Failed to initialize login session" },
+      { status: 500 }
     );
   }
+}
 
-  const openIdConfig = await fetchOpenIdConfiguration();
-  const authorizationEndpoint = openIdConfig.authorization_endpoint;
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const { email } = await request.json();
 
-  const client_id = process.env.GOOGLE_CLIENT_ID || "";
-  const redirect_uri = process.env.GOOGLE_REDIRECT_URI || "";
-  const scope = process.env.GOOGLE_SCOPE || "openid profile email"; // Read scope from .env
-  const state = uuidv4();
-  const code_challenge_method = "S256";
+    const { sessionId, sessionData } = await createSession({
+      authenticated: true,
+      email,
+      created: new Date().toISOString(),
+    });
 
-  const authorizationUrl = `${authorizationEndpoint}?${new URLSearchParams({
-    client_id,
-    response_type: "code",
-    redirect_uri,
-    scope,
-    state,
-    code_challenge,
-    code_challenge_method,
-  }).toString()}`;
+    const response = NextResponse.json({
+      success: true,
+      sessionId,
+    });
 
-  console.log("Redirecting to Google:", authorizationUrl); // Log the redirect URL
+    response.cookies.set("sessionId", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
 
-  return NextResponse.json({ url: authorizationUrl });
-};
-
-export { handler as POST };
+    return response;
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Authentication failed" },
+      { status: 401 }
+    );
+  }
+}

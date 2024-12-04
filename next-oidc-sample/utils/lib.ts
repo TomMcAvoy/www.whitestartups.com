@@ -7,9 +7,7 @@ import {
   redisClient,
 } from "@/middleware/redis-store";
 import { NextRequest, NextResponse } from "next/server";
-import applySession from "next-session";
-import { SessionData } from "@/types/session";
-import { RequestContext } from "@/middleware/context";
+import { SessionData } from "@/types/session-types"; // Import SessionData
 
 // Ensure there are no references to next-auth or lucia
 

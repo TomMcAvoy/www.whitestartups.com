@@ -1,26 +1,28 @@
 "use client";
-import React from "react";
-import { GetServerSideProps } from "next";
+import React, { useEffect, useState } from "react";
 import { getSession } from "@/middleware/redis-store";
 import Login from "@/components/Login";
+import { SessionData } from "@/types/session-types"; // Import SessionData
 
-interface LoginProps {
-  session: SessionData | null;
-}
+const Page = () => {
+  const [session, setSession] = useState<SessionData | null>(null);
 
-const Page = ({ session }: LoginProps) => {
+  useEffect(() => {
+    const fetchSession = async () => {
+      const sessionId = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("session_id="))
+        ?.split("=")[1];
+      if (sessionId) {
+        const sessionData = await getSession(sessionId);
+        setSession(sessionData);
+      }
+    };
+
+    fetchSession();
+  }, []);
+
   return <Login session={session} />;
-};
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const sessionId = context.req.cookies.session_id;
-  const session = sessionId ? await getSession(sessionId) : null;
-
-  return {
-    props: {
-      session,
-    },
-  };
 };
 
 export default Page;
