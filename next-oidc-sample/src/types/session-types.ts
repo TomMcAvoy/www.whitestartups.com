@@ -5,8 +5,23 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// src/session-types.ts
-export class SessionData {
+// src/types/session-types.ts
+export interface Session {
+  authenticated: boolean;
+  id?: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  access_token?: string;
+  id_token?: string;
+  state?: string;
+  codeVerifier?: string;
+  [key: string]: unknown;
+}
+
+export class SessionData implements Session {
   authenticated: boolean;
   id?: string;
   user?: {
@@ -20,8 +35,9 @@ export class SessionData {
   codeVerifier?: string;
   [key: string]: unknown;
 
-  constructor(data: { authenticated: boolean }) {
+  constructor(data: Session) {
     this.authenticated = data.authenticated;
+    this.id = data.id;
     // ...initialize other properties...
   }
 
@@ -39,5 +55,10 @@ export class SessionData {
     } else {
       throw new Error("Session ID is missing");
     }
+  }
+
+  static async load(id: string): Promise<SessionData | null> {
+    const data = await redis.get(id);
+    return data ? new SessionData(JSON.parse(data)) : null;
   }
 }

@@ -1,34 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
-import { withContext } from "@/middleware/context";
-import { Redis } from "@upstash/redis";
+import { SessionData } from "@/types/session-types";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
-
-const handler = withContext(async (contextReq) => {
-  if (!contextReq.context.session) {
-    contextReq.context.session = { id: "mock-session-id" }; // Ensure a mock session is in place
-    return NextResponse.json({ error: "No session found" }, { status: 404 });
-  }
-
-  const sessionId = contextReq.context.session.id;
+export async function GET(req: NextRequest) {
+  const sessionId = req.cookies.get("sessionId")?.value;
   if (sessionId) {
-    await redis.del(sessionId);
+    const session = await SessionData.load(sessionId);
+    if (session) {
+      await session.destroy();
+      const response = NextResponse.json({
+        message: "Logged out successfully",
+      });
+      response.cookies.set("sessionId", "", { maxAge: 0, path: "/" });
+      return response;
+    } else {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    }
   } else {
     return NextResponse.json(
       { error: "Session ID is missing" },
       { status: 400 }
     );
   }
-
-  return NextResponse.json({ success: true });
-});
-
-export const GET = async (req: NextRequest) => {
-  const resolvedHandler = await handler;
-  return resolvedHandler(req, new NextResponse());
-};
+}

@@ -1,4 +1,4 @@
-import { SessionData } from "@/types/session";
+import { SessionData } from "@/types/session-types";
 import { useEffect, useState } from "react";
 
 export default function useSession() {

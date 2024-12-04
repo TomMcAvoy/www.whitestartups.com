@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState } from "react";
 import LoginComponent from "@/components/Login";
 import { SessionData } from "@/types/session-types"; // Updated import path
 import { Redis } from "@upstash/redis";
+import { generateRandomState } from "@/utils"; // Updated import path
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,

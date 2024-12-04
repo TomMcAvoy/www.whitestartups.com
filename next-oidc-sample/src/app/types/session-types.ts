@@ -14,5 +14,10 @@ export class SessionData {
   destroy() {
     // ...implementation...
   }
+
+  logout() {
+    this.authenticated = false;
+    this.destroy();
+  }
 }
 // ...existing code...

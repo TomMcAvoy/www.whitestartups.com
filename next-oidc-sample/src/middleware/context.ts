@@ -1,13 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, JWTPayload } from "jose";
 import crypto from "crypto";
-import { Redis } from "@upstash/redis";
-import { Session } from "./session"; // Ensure Session interface is imported from the correct file
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+import {
+  getSession,
+  createSession,
+  setSessionCookie,
+  addCodeVerifier,
+  ensureSession,
+  Session,
+} from "@/middleware/redis-store"; // Import new session routines
 
 export interface RequestContext {
   requestId: string;
@@ -66,7 +68,7 @@ export async function createContext(
 
   // Add session if exists
   if (sessionId) {
-    const sessionData = await getSessionData(sessionId);
+    const sessionData = await getSession(sessionId);
     if (sessionData) {
       context.session = sessionData;
     }
@@ -130,17 +132,4 @@ export async function withContext(
 }
 
 // Re-export the addCodeVerifier and ensureSession functions
-export async function addCodeVerifier(context: RequestContext) {
-  context.codeVerifier =
-    context.req.headers.get("x-code-verifier") || undefined;
-}
-
-export async function ensureSession(context: RequestContext) {
-  if (!context.session) {
-    context.session = { id: context.sessionId || "" };
-  }
-}
-
-export async function getSessionData(sessionId: string) {
-  return await redis.get(sessionId);
-}
+export { addCodeVerifier, ensureSession };

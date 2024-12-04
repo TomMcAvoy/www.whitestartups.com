@@ -1,7 +1,9 @@
-// src/middleware/redis-store.ts
+/* eslint-disable @typescript-eslint/no-empty-interface */
+
 import { Redis } from "@upstash/redis";
 import { SessionData } from "@/types/session-types";
 import { NextRequest, NextResponse } from "next/server";
+import { RequestContext } from "@/middleware/context";
 
 // Initialize Redis client
 const redisClient = new Redis({
@@ -19,7 +21,7 @@ export class RedisStore {
 
   async get(sid: string): Promise<SessionData | null> {
     const data = await this.client.get(`sess:${sid}`);
-    return data ? JSON.parse(data) : null;
+    return typeof data === "string" ? JSON.parse(data) : null;
   }
 
   async set(sid: string, sess: SessionData): Promise<void> {
@@ -43,49 +45,40 @@ function generateUUID() {
 }
 
 // Session CRUD operations
-export async function createSession<T>(
-  data: T
+export async function createSession(
+  data: Partial<SessionData>
 ): Promise<{ sessionId: string; sessionData: SessionData }> {
   const sessionId = generateUUID();
-  const sessionData: SessionData = {
-    ...data,
-    save: async () => {
-      await redisClient.set(`sess:${sessionId}`, JSON.stringify(sessionData));
-    },
-    destroy: async (callback: (err: Error | null) => void) => {
-      try {
-        await redisClient.del(`sess:${sessionId}`);
-        callback(null);
-      } catch (err) {
-        callback(err);
-      }
-    },
-  };
+  const sessionData = new SessionData({ authenticated: false, ...data });
+  sessionData.id = sessionId;
 
-  await redisClient.set(`sess:${sessionId}`, JSON.stringify(sessionData));
+  await redisStore.set(sessionId, sessionData);
   return { sessionId, sessionData };
 }
 
 export async function getSession(
   sessionId: string
 ): Promise<SessionData | null> {
-  return await redisStore.get(sessionId);
+  return await SessionData.load(sessionId);
 }
 
 export async function updateSession(
   sessionId: string,
   data: Partial<SessionData>
 ): Promise<void> {
-  const sessionData = await redisStore.get(sessionId);
+  const sessionData = await getSession(sessionId);
   if (!sessionData) {
     throw new Error("Session not found");
   }
   Object.assign(sessionData, data);
-  await redisStore.set(sessionId, sessionData);
+  await sessionData.save();
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  await redisStore.destroy(sessionId);
+  const sessionData = await getSession(sessionId);
+  if (sessionData) {
+    await sessionData.destroy();
+  }
 }
 
 // Cookie management
@@ -119,11 +112,23 @@ export async function withSession(request: NextRequest): Promise<{
     return { session: null, sessionId: null };
   }
 
-  const sessionData = await redisClient.get(`sess:${sessionId}`);
-  if (!sessionData) {
-    return { session: null, sessionId: null };
-  }
+  const sessionData = await getSession(sessionId);
+  return { session: sessionData, sessionId };
+}
 
-  const parsedSession = JSON.parse(sessionData) as SessionData;
-  return { session: parsedSession, sessionId };
+export interface Session extends SessionData {
+  // ...other session properties...
+}
+
+export async function addCodeVerifier(context: RequestContext): Promise<void> {
+  context.codeVerifier =
+    context.req.headers.get("x-code-verifier") || undefined;
+}
+
+export async function ensureSession(context: RequestContext): Promise<void> {
+  if (!context.session) {
+    const { sessionId, sessionData } = await createSession({});
+    context.session = sessionData;
+    await setSessionCookie(context.res, sessionId);
+  }
 }

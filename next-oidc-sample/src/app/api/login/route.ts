@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateUser } from "@/middleware/auth"; // Corrected path
 import { Redis } from "@upstash/redis";
+import { createSession } from "@/middleware/redis-store";
+import { generateRandomState } from "@/utils"; // Updated import path
 
 /**
  * Handles the login process for the application.
@@ -30,9 +32,45 @@ export async function POST(req: NextRequest) {
   // Create session
   const sessionId = req.cookies.get("session_id")?.value; // Ensure sessionId is a string
   if (sessionId) {
-    const sessionData = await redis.get(sessionId);
+    const sessionData = await redis.get(sessionId); // eslint-disable-line @typescript-eslint/no-unused-vars
     // ...existing code...
   }
 
+  const sessionResponse = { user, sessionId };
   return NextResponse.json({ session: sessionResponse });
+}
+
+export async function GET() {
+  try {
+    // Generate state for OIDC security
+    const state = generateRandomState();
+
+    // Create a new session
+    const { sessionId, sessionData } = await createSession({
+      state,
+      created: new Date().toISOString(),
+    });
+
+    // Create response with session cookie
+    const response = NextResponse.json({
+      session: sessionData,
+      sessionId,
+    });
+
+    // Set session cookie
+    response.cookies.set("sessionId", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Failed to initialize login session" },
+      { status: 500 }
+    );
+  }
 }
