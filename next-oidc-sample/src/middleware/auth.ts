@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, getSession, setSessionCookie } from "./redis-store";
 import { ContextManager } from "@/lib/context";
+import { NextApiRequest, NextApiResponse } from "next";
+import { handleAuthCallback } from "@/lib/oidc/auth";
 
 interface User {
   id: string;
@@ -56,4 +58,24 @@ export async function authMiddleware(request: NextRequest) {
   ContextManager.set(request, SESSION_SYMBOL, session);
 
   return NextResponse.next();
+}
+
+export async function handleCallback(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method === "GET") {
+    try {
+      const { code } = req.query;
+      const tokens = await handleAuthCallback(code as string);
+      res.status(200).json(tokens);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ error: "Failed to handle authentication callback" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
 }
