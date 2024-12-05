@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { protectedRoute } from "../../../middleware/auth";
-import { verifyToken } from "../../../lib/oidc/auth";
+import { protectedRoute } from "@/middleware/auth";
+import { verifyToken } from "@/lib/oidc/oidcauth";
 
 export default async function handler(
   req: NextApiRequest,

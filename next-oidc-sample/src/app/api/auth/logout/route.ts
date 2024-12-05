@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { logout } from "../../../middleware/auth";
+import { logout } from "@/middleware/auth";
 
 export default async function handler(
   req: NextApiRequest,

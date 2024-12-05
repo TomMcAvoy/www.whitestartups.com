@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSession, getSession, setSessionCookie } from "./redis-store";
 import { ContextManager } from "@/lib/context";
 import { NextApiRequest, NextApiResponse } from "next";
-import { handleAuthCallback } from "@/lib/oidc/auth";
+import { OIDCClient } from "@/lib/oidc/client";
+import { OIDCAuth } from "@/lib/oidc/oidcauth"; // Updated import
+import { TokenVerifier } from "@/lib/tokens/verify";
+import { SessionStore } from "@/lib/redis/store";
+import { ContextSymbols } from "@/lib/context/symbols";
 
 interface User {
   id: string;
@@ -31,31 +35,18 @@ const SESSION_SYMBOL = Symbol("session");
 
 export async function authMiddleware(request: NextRequest) {
   const sessionId = request.cookies.get("sessionId")?.value;
-  const session = sessionId ? await getSession(sessionId) : null;
 
-  // Skip authentication for public paths
-  const publicPaths = ["/api/auth/login", "/api/auth/callback"];
-  if (publicPaths.includes(request.nextUrl.pathname)) {
-    return NextResponse.next();
-  }
-
-  // Redirect to login if no session exists
-  if (!session?.user) {
-    const loginUrl = new URL("/api/auth/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Create a new session if none exists
   if (!sessionId) {
-    const { sessionId: newSessionId } = await createSession({
-      user: session.user,
-    });
-    await setSessionCookie(NextResponse.next(), newSessionId);
-    return NextResponse.next();
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // Store session in new context system
-  ContextManager.set(request, SESSION_SYMBOL, session);
+  const session = await SessionStore.getSession(sessionId);
+  if (!session) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
+  // Store sessionId in context
+  ContextManager.set(request, ContextSymbols.SESSION_ID, sessionId);
 
   return NextResponse.next();
 }
@@ -67,7 +58,7 @@ export async function handleCallback(
   if (req.method === "GET") {
     try {
       const { code } = req.query;
-      const tokens = await handleAuthCallback(code as string);
+      const tokens = await OIDCAuth.handleCallback(code as string); // Updated method call
       res.status(200).json(tokens);
     } catch (error) {
       res
@@ -77,5 +68,58 @@ export async function handleCallback(
   } else {
     res.setHeader("Allow", ["GET"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
+
+export async function login(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "POST") {
+    try {
+      const { username, password } = req.body;
+      const user = await authenticateUser(username, password);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      // Generate tokens and create session here
+      const tokens = {
+        /* token generation logic */
+      };
+      res.status(200).json(tokens);
+    } catch (error) {
+      res.status(401).json({ error: "Invalid credentials" });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
+
+export async function logout(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "POST") {
+    try {
+      // Clear session or perform logout logic here
+      res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to log out" });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
+
+export async function protectedRoute(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+  try {
+    const user = await verifyToken(token);
+    req.user = user; // Attach user to request object
+    return NextResponse.next();
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid token" });
   }
 }

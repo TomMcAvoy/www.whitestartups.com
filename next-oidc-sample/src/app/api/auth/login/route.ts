@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { login } from "../../../middleware/auth";
+import { login } from "@/middleware/auth";
 import "@/config/env"; // Ensure environment variables are loaded
 
 export const dynamic = "force-dynamic";

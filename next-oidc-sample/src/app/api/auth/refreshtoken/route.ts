@@ -1,24 +1,42 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import "@/config/env"; // Ensure environment variables are loaded
-import { NextApiRequest, NextApiResponse } from "next";
-import { refreshToken } from "../../../middleware/auth";
-import { refreshAccessToken } from "../../../lib/oidc/client";
+import { NextRequest, NextResponse } from "next/server";
+import { TokenVerifier } from "@/lib/tokens/verify";
+import { SessionStore } from "@/lib/redis/store";
+import { OIDCClient } from "@/lib/oidc/client";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  await refreshToken(req, res); // Add middleware usage
-  if (req.method === "POST") {
-    try {
-      const { refreshToken } = req.body;
-      const newAccessToken = await refreshAccessToken(refreshToken);
-      res.status(200).json({ accessToken: newAccessToken });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to refresh token" });
+export async function POST(request: NextRequest) {
+  const sessionId = request.cookies.get("sessionId")?.value;
+
+  if (!sessionId) {
+    return NextResponse.json({ error: "No session" }, { status: 401 });
+  }
+
+  try {
+    // Get current session
+    const session = await SessionStore.getSession(sessionId);
+    if (!session?.tokens.refresh_token) {
+      return NextResponse.json(
+        { error: "No refresh token available" },
+        { status: 401 }
+      );
     }
-  } else {
-    res.setHeader("Allow", ["POST"]);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    // Refresh the tokens
+    const newTokens = await OIDCClient.refreshTokens(
+      session.tokens.refresh_token
+    );
+
+    // Update session with new tokens
+    await SessionStore.updateSession(sessionId, {
+      tokens: newTokens,
+    });
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("Token refresh failed:", error);
+    return NextResponse.json({ error: "Refresh failed" }, { status: 401 });
   }
 }

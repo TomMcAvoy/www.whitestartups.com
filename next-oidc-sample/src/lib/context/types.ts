@@ -5,15 +5,16 @@ export type OIDCState = {
   redirect_uri: string;
 };
 
-export type OIDCTokens = {
+export interface OIDCTokens {
   access_token: string;
   id_token: string;
   refresh_token?: string;
   expires_at: number;
-};
+}
 
-export type SessionData = {
+export interface SessionData {
+  userId: string;
+  email: string;
   tokens: OIDCTokens;
-  claims: any;
   created: string;
-};
+}

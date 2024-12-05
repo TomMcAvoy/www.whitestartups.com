@@ -32,4 +32,9 @@ export class SessionStore {
   static async delete(sessionId: string): Promise<void> {
     await redis.del(`session:${sessionId}`);
   }
+
+  static async exists(sessionId: string): Promise<boolean> {
+    const exists = await redis.exists(`session:${sessionId}`);
+    return exists === 1;
+  }
 }
