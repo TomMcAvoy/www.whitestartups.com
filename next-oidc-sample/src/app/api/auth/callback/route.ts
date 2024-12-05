@@ -1,27 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { exchangeCodeForToken } from "@/utils/index";
+import { NextApiRequest, NextApiResponse } from "next";
+import { callback } from "../../../middleware/auth";
+import { handleAuthCallback } from "../../../lib/oidc/auth";
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const codeVerifier = req.cookies.get("code_verifier")?.value;
-
-  if (!code || !codeVerifier) {
-    return NextResponse.json(
-      { error: "Missing code or code verifier" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    const tokens = await exchangeCodeForToken(code, codeVerifier);
-    // Store tokens in session or cookies as needed
-    return NextResponse.json({ tokens });
-  } catch (error) {
-    console.error("Error exchanging code for token:", error);
-    return NextResponse.json(
-      { error: "Failed to exchange code for token" },
-      { status: 500 }
-    );
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  await callback(req, res); // Add middleware usage
+  if (req.method === "GET") {
+    try {
+      const { code } = req.query;
+      const tokens = await handleAuthCallback(code as string);
+      res.status(200).json(tokens);
+    } catch (error) {
+      res
+        .status(500)
+        .json({ error: "Failed to handle authentication callback" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

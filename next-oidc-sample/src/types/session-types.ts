@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+import "@/config/env"; // Ensure environment variables are loaded
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({

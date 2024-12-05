@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { Redis } from "@upstash/redis";
-import { SessionData } from "@/types/session-types";
+import "@/config/env"; // Ensure environment variables are loaded
+import { redis, Redis } from "@/lib/redis";
+import { AppContext, ContextManager } from "@/lib/context";
 import { NextRequest, NextResponse } from "next/server";
-import { RequestContext } from "@/middleware/context";
+import { SessionData } from "@/types/session-types";
 
 // Initialize Redis client
 export const redisClient = new Redis({
@@ -36,13 +37,11 @@ export class RedisStore {
 
 export const redisStore = new RedisStore(redisClient);
 
+const SESSION_SYMBOL = Symbol("session");
+
 // Generate a UUID using a supported method
 function generateUUID() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 // Session CRUD operations
@@ -53,14 +52,15 @@ export async function createSession(
   const sessionData = new SessionData({ authenticated: false, ...data });
   sessionData.id = sessionId;
 
-  await redisStore.set(sessionId, sessionData);
+  await redis.set(`session:${sessionId}`, JSON.stringify(sessionData));
   return { sessionId, sessionData };
 }
 
 export async function getSession(
   sessionId: string
 ): Promise<SessionData | null> {
-  return await SessionData.load(sessionId);
+  const session = await redis.get(`session:${sessionId}`);
+  return session ? JSON.parse(session as string) : null;
 }
 
 export async function updateSession(
@@ -72,14 +72,11 @@ export async function updateSession(
     throw new Error("Session not found");
   }
   Object.assign(sessionData, data);
-  await sessionData.save();
+  await redis.set(`session:${sessionId}`, JSON.stringify(sessionData));
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  const sessionData = await getSession(sessionId);
-  if (sessionData) {
-    await sessionData.destroy();
-  }
+  await redis.del(`session:${sessionId}`);
 }
 
 // Cookie management
@@ -113,7 +110,12 @@ export async function withSession(request: NextRequest): Promise<{
     return { session: null, sessionId: null };
   }
 
-  const sessionData = await getSession(sessionId);
+  const session = await redis.get(`session:${sessionId}`);
+  const sessionData = session ? JSON.parse(session as string) : null;
+
+  // Store in new context system
+  ContextManager.set(request, SESSION_SYMBOL, sessionData);
+
   return { session: sessionData, sessionId };
 }
 

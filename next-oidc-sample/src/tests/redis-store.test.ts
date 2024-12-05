@@ -1,3 +1,4 @@
+import "@/config/env"; // Ensure environment variables are loaded
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Redis } from "@upstash/redis";
 import {

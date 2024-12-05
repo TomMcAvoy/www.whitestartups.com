@@ -1,64 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { NextRequest, NextResponse } from "next/server";
-import {
-  createSession,
-  setSessionCookie,
-  ensureSession,
-} from "@/middleware/redis-store";
-import { generateRandomState } from "@/utils/oidc-utils";
+import { NextApiRequest, NextApiResponse } from "next";
+import { login } from "../../../middleware/auth";
+import "@/config/env"; // Ensure environment variables are loaded
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const state = generateRandomState();
-
-    const { sessionId, sessionData } = await createSession({
-      state,
-      created: new Date().toISOString(),
-    });
-
-    const response = NextResponse.json({
-      session: sessionData,
-      sessionId,
-    });
-
-    await setSessionCookie(response, sessionId);
-
-    return response;
-  } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Failed to initialize login session" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const { email } = await request.json();
-
-    const { sessionId, sessionData } = await createSession({
-      authenticated: true,
-      email,
-      created: new Date().toISOString(),
-    });
-
-    const response = NextResponse.json({
-      success: true,
-      sessionId,
-    });
-
-    await setSessionCookie(response, sessionId);
-
-    return response;
-  } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Authentication failed" },
-      { status: 401 }
-    );
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  await login(req, res); // Add middleware usage
+  if (req.method === "POST") {
+    try {
+      const { username, password } = req.body;
+      const tokens = await login(username, password);
+      res.status(200).json(tokens);
+    } catch (error) {
+      res.status(401).json({ error: "Invalid credentials" });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

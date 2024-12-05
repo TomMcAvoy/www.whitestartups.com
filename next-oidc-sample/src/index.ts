@@ -1,0 +1,3 @@
+import "@/config/env"; // Ensure environment variables are loaded
+
+// ...existing code...

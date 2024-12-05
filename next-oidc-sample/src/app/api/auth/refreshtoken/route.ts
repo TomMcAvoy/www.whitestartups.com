@@ -1,56 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { NextRequest, NextResponse } from "next/server";
-import { Redis } from "@upstash/redis";
-import { SessionData } from "@/types/session-types";
-import { refreshTokens, setTokenExpiry } from "@/utils/token-utils";
-import { refreshAccessToken } from "@/utils/oidc-utils"; // Updated import path
-import { getContext } from "@/middleware/context-store"; // Import context store
+import "@/config/env"; // Ensure environment variables are loaded
+import { NextApiRequest, NextApiResponse } from "next";
+import { refreshToken } from "../../../middleware/auth";
+import { refreshAccessToken } from "../../../lib/oidc/client";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
-
-export async function POST(req: NextRequest) {
-  const requestId = req.headers.get("x-request-id");
-  if (!requestId) {
-    return NextResponse.json(
-      { error: "Request ID not found" },
-      { status: 400 }
-    );
-  }
-
-  const context = getContext(requestId);
-  if (!context) {
-    return NextResponse.json(
-      { error: "Context not found or expired" },
-      { status: 400 }
-    );
-  }
-
-  const sessionId = req.cookies.get("session_id")?.value;
-  if (!sessionId) {
-    return NextResponse.json(
-      { error: "Session ID is missing" },
-      { status: 400 }
-    );
-  }
-
-  const session = await SessionData.load(sessionId);
-  if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-
-  try {
-    const newAccessToken = await refreshTokens(session);
-    setTokenExpiry(context, session); // Use context instead of requestId
-
-    return NextResponse.json({ access_token: newAccessToken });
-  } catch (error) {
-    console.error("Error refreshing access token:", error);
-    return NextResponse.json(
-      { error: "Failed to refresh access token" },
-      { status: 500 }
-    );
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  await refreshToken(req, res); // Add middleware usage
+  if (req.method === "POST") {
+    try {
+      const { refreshToken } = req.body;
+      const newAccessToken = await refreshAccessToken(refreshToken);
+      res.status(200).json({ accessToken: newAccessToken });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to refresh token" });
+    }
+  } else {
+    res.setHeader("Allow", ["POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

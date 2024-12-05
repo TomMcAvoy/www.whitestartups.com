@@ -1,6 +1,7 @@
 // src/middleware/auth.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, getSession, setSessionCookie } from "./redis-store";
+import { ContextManager } from "@/lib/context";
 
 interface User {
   id: string;
@@ -23,6 +24,8 @@ export async function authenticateUser(
   );
   return user || null;
 }
+
+const SESSION_SYMBOL = Symbol("session");
 
 export async function authMiddleware(request: NextRequest) {
   const sessionId = request.cookies.get("sessionId")?.value;
@@ -48,6 +51,9 @@ export async function authMiddleware(request: NextRequest) {
     await setSessionCookie(NextResponse.next(), newSessionId);
     return NextResponse.next();
   }
+
+  // Store session in new context system
+  ContextManager.set(request, SESSION_SYMBOL, session);
 
   return NextResponse.next();
 }

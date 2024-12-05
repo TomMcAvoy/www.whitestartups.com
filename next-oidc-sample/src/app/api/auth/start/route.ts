@@ -1,13 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { NextRequest, NextResponse } from "next/server";
-import { generateRandomState } from "@/utils/oidc-utils"; // Updated import path
+import { NextApiRequest, NextApiResponse } from "next";
+import { start } from "../../../middleware/auth";
+import { startAuthProcess } from "../../../lib/oidc/client";
 
-export async function POST(req: NextRequest) {
-  // Generate state for OIDC security
-  const state = generateRandomState();
-
-  // Redirect the user to the authentication provider with the state parameter
-  const authUrl = `${process.env.AUTH_PROVIDER_URL}?response_type=code&client_id=${process.env.CLIENT_ID}&redirect_uri=${process.env.REDIRECT_URI}&state=${state}`;
-
-  return NextResponse.redirect(authUrl);
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  await start(req, res); // Add middleware usage
+  if (req.method === "GET") {
+    try {
+      const authUrl = await startAuthProcess();
+      res.redirect(authUrl);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to start authentication process" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
 }
