@@ -63,6 +63,6 @@ export class SessionData implements Session {
 
   static async load(id: string): Promise<SessionData | null> {
     const data = await redis.get(id);
-    return data ? new SessionData(JSON.parse(data)) : null;
+    return typeof data === "string" ? new SessionData(JSON.parse(data)) : null;
   }
 }

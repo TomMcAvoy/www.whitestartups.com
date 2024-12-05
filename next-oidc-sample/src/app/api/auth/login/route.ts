@@ -1,5 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { NextRequest, NextResponse } from "next/server";
-import { createSession } from "@/middleware/redis-store";
+import {
+  createSession,
+  setSessionCookie,
+  ensureSession,
+} from "@/middleware/redis-store";
 import { generateRandomState } from "@/utils/oidc-utils";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       sessionId,
     });
 
-    response.cookies.set("sessionId", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    await setSessionCookie(response, sessionId);
 
     return response;
   } catch (error) {
@@ -50,12 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sessionId,
     });
 
-    response.cookies.set("sessionId", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    await setSessionCookie(response, sessionId);
 
     return response;
   } catch (error) {

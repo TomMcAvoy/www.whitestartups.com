@@ -19,7 +19,11 @@ export default function Page() {
   return (
     <div>
       <h1>Welcome</h1>
-      {session ? <p>Logged in as {session.user.name}</p> : <p>Please log in</p>}
+      {session ? (
+        <p>Logged in as {session.user?.name}</p>
+      ) : (
+        <p>Please log in</p>
+      )}
     </div>
   );
 }

@@ -4,12 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, JWTPayload } from "jose";
 import crypto from "crypto";
 import {
-  getSession,
   createSession,
   setSessionCookie,
-  addCodeVerifier,
+  setCodeVerifier,
   ensureSession,
-  Session,
+  getSession, // Import getSession
 } from "@/middleware/redis-store"; // Import new session routines
 import { SessionData } from "@/types/session-types"; // Import SessionData
 import { refreshAccessToken } from "@/utils/oidc-utils"; // Updated import path
@@ -131,4 +130,4 @@ export function getContext(req: NextRequest): RequestContext {
 }
 
 // Re-export the addCodeVerifier and ensureSession functions
-export { addCodeVerifier, ensureSession };
+export { setCodeVerifier, ensureSession };

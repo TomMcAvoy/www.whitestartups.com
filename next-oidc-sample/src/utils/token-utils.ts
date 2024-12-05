@@ -2,11 +2,13 @@
 import { jwtVerify, JWTPayload } from "jose";
 import { refreshAccessToken } from "@/utils/oidc-utils"; // Updated import path
 import { SessionData } from "@/types/session-types";
-import { V4 } from "paseto"; // Import PASETO library
+import { sign } from "jsonwebtoken"; // Import jsonwebtoken library
 
-const { sign } = V4; // Remove unused 'verify'
+const secretKey = process.env.SECRET_KEY;
 
-const secretKey = process.env.PASETO_SECRET_KEY;
+if (!secretKey) {
+  throw new Error("SECRET_KEY environment variable is not defined");
+}
 
 export async function verifyToken(
   token: string,
@@ -50,10 +52,16 @@ export function setTokenExpiry(context: any, session: SessionData): void {
 export async function generateAccessToken(user: any): Promise<string> {
   const payload = {
     sub: user.id,
+    name: user.name,
     email: user.email,
     // ...other claims...
   };
-  return await sign(payload, secretKey);
+
+  if (!secretKey) {
+    throw new Error("SECRET_KEY is not defined");
+  }
+
+  return sign(payload, secretKey);
 }
 
 export async function generateRefreshToken(user: any): Promise<string> {
@@ -62,7 +70,12 @@ export async function generateRefreshToken(user: any): Promise<string> {
     type: "refresh",
     // ...other claims...
   };
-  return await sign(payload, secretKey);
+
+  if (!secretKey) {
+    throw new Error("SECRET_KEY is not defined");
+  }
+
+  return sign(payload, secretKey);
 }
 
 export async function generateIdToken(user: any): Promise<string> {
@@ -71,5 +84,10 @@ export async function generateIdToken(user: any): Promise<string> {
     email: user.email,
     // ...other claims...
   };
-  return await sign(payload, secretKey);
+
+  if (!secretKey) {
+    throw new Error("SECRET_KEY is not defined");
+  }
+
+  return sign(payload, secretKey);
 }

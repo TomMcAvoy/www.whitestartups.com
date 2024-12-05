@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { Redis } from "@upstash/redis";
 import { SessionData } from "@/types/session-types";
@@ -6,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { RequestContext } from "@/middleware/context";
 
 // Initialize Redis client
-const redisClient = new Redis({
+export const redisClient = new Redis({
   url: process.env.UPSTASH_REDIS_URL,
   token: process.env.UPSTASH_REDIS_TOKEN,
 });
@@ -116,15 +117,37 @@ export async function withSession(request: NextRequest): Promise<{
   return { session: sessionData, sessionId };
 }
 
-export async function addCodeVerifier(context: RequestContext): Promise<void> {
-  context.codeVerifier =
-    context.req.headers.get("x-code-verifier") || undefined;
+const CODE_VERIFIER_SYMBOL = Symbol("codeVerifier");
+const CONTEXT_SYMBOL = Symbol("context");
+const contextMap = new Map<string, RequestContext>();
+
+export async function setCodeVerifier(context: RequestContext): Promise<void> {
+  const requestBody = await (context.req as NextRequest).json();
+  const contextId = requestBody[CONTEXT_SYMBOL];
+  if (contextId && contextMap.has(contextId)) {
+    const storedContext = contextMap.get(contextId);
+    if (storedContext) {
+      storedContext.codeVerifier = requestBody.codeVerifier || undefined;
+    }
+  }
+}
+
+export async function getCodeVerifier(
+  context: RequestContext
+): Promise<string | undefined> {
+  const requestBody = await (context.req as NextRequest).json();
+  const contextId = requestBody[CONTEXT_SYMBOL];
+  if (contextId && contextMap.has(contextId)) {
+    const storedContext = contextMap.get(contextId);
+    return storedContext?.codeVerifier;
+  }
+  return undefined;
 }
 
 export async function ensureSession(context: RequestContext): Promise<void> {
   if (!context.session) {
     const { sessionId, sessionData } = await createSession({});
     context.session = sessionData;
-    await setSessionCookie(context.res, sessionId);
+    await setSessionCookie(context.res as NextResponse, sessionId);
   }
 }
