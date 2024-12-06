@@ -32,6 +32,9 @@ importers:
       ioredis:
         specifier: ^5.4.1
         version: 5.4.1
+      jose:
+        specifier: ^5.9.6
+        version: 5.9.6
       jsonwebtoken:
         specifier: ^8.5.1
         version: 8.5.1

@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import { V4 } from "@paseto/sdk";
 import type { TokenPayload, VerifyOptions } from "./types";
@@ -8,6 +9,11 @@ export class TokenVerifier {
     new URL(TokenVerifier.JWKS_URI)
   );
   private static readonly PASETO_PUBLIC_KEY = process.env.PASETO_PUBLIC_KEY!;
+  private publicKey: string;
+
+  constructor(publicKey: string) {
+    this.publicKey = publicKey;
+  }
 
   static async verifyToken(
     token: string,
@@ -28,6 +34,16 @@ export class TokenVerifier {
     } catch (error) {
       console.error("Token verification failed:", error);
       throw new Error("Token verification failed");
+    }
+  }
+
+  verifyToken(token: string) {
+    try {
+      const decoded = jwt.verify(token, this.publicKey);
+      return decoded;
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return null;
     }
   }
 

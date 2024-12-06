@@ -6,6 +6,69 @@ import {
   exchangeCodeForTokens,
   refreshTokens,
 } from "@/lib/oidc-utils";
+import jwt from "jsonwebtoken";
+
+interface TokenPayload {
+  sub: string;
+  email?: string;
+  name?: string;
+  exp?: number;
+  iat?: number;
+}
+
+export const verifyToken = (token: string): Promise<TokenPayload> => {
+  return new Promise((resolve, reject) => {
+    if (!process.env.JWT_SECRET) {
+      reject(new Error("JWT_SECRET is not configured"));
+      return;
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(decoded as TokenPayload);
+    });
+  });
+};
+
+export const createToken = (payload: Partial<TokenPayload>): string => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: "1d", // Token expires in 1 day
+  });
+};
+
+export const refreshToken = async (token: string): Promise<string> => {
+  try {
+    const decoded = await verifyToken(token);
+
+    // Create new token with fresh expiration
+    const newToken = createToken({
+      sub: decoded.sub,
+      email: decoded.email,
+      name: decoded.name,
+    });
+
+    return newToken;
+  } catch (error) {
+    throw new Error("Invalid token for refresh");
+  }
+};
+
+// Helper to extract token from Authorization header
+export const extractTokenFromHeader = (authHeader?: string): string => {
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw new Error("Invalid authorization header");
+  }
+
+  return authHeader.substring(7);
+};
 
 export class OIDCAuth {
   static async createAuthRequest(): Promise<{ url: string; state: OIDCState }> {

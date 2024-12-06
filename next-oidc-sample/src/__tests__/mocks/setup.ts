@@ -1,3 +1,13 @@
 process.env.GOOGLE_CLIENT_ID = 'test_client_id';
 process.env.GOOGLE_CLIENT_SECRET = 'test_client_secret';
 process.env.GOOGLE_REDIRECT_URI = 'http://localhost:3000/api/auth/callback';
+process.env.SESSION_SECRET = 'test_session_secret';
+process.env.SESSION_DURATION = '1h';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.REDIS_TOKEN = 'test_token';
+process.env.NEXTAUTH_URL = 'http://localhost:3000';
+process.env.NEXTAUTH_SECRET = 'test_secret';
+process.env.COOKIE_NAME = '__session_test';
+process.env.COOKIE_DOMAIN = 'localhost';
+process.env.COOKIE_SECURE = 'false';
+process.env.NODE_ENV = 'test';

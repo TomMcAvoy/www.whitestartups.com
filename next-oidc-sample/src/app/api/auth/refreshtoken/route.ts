@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      tokens: newTokens,
     });
   } catch (error) {
     console.error("Token refresh failed:", error);

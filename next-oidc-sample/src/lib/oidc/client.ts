@@ -1,5 +1,21 @@
 import { redis } from "./client";
 import type { SessionData, OIDCTokens } from "../context/types";
+import { randomBytes, createHash } from "crypto";
+import { URLSearchParams } from "url";
+
+const OIDC_AUTHORITY = process.env.OIDC_AUTHORITY!;
+const CLIENT_ID = process.env.OIDC_CLIENT_ID!;
+const REDIRECT_URI = process.env.OIDC_REDIRECT_URI!;
+const SCOPE = "openid profile email";
+const RESPONSE_TYPE = "code";
+
+function generateCodeVerifier() {
+  return randomBytes(32).toString("hex");
+}
+
+function generateCodeChallenge(verifier: string) {
+  return createHash("sha256").update(verifier).digest("base64url");
+}
 
 export class SessionStore {
   static async create(sessionData: SessionData): Promise<string> {
@@ -60,6 +76,41 @@ export class SessionStore {
 }
 
 export class OIDCClient {
+  private static instance: OIDCClient;
+  private discoveryDocument: any;
+  private initialized: boolean = false;
+
+  private constructor() {}
+
+  static getInstance(): OIDCClient {
+    if (!OIDCClient.instance) {
+      OIDCClient.instance = new OIDCClient();
+    }
+    return OIDCClient.instance;
+  }
+
+  async initialize() {
+    if (this.initialized) return;
+
+    try {
+      const response = await fetch(process.env.OIDC_DISCOVERY_URL!, {
+        next: { revalidate: 3600 }, // Cache for 1 hour
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch OIDC discovery document");
+      }
+
+      this.discoveryDocument = await response.json();
+      this.initialized = true;
+
+      return this.discoveryDocument;
+    } catch (error) {
+      console.error("Failed to initialize OIDC client:", error);
+      throw error;
+    }
+  }
+
   private static readonly tokenEndpoint = `${process.env.OIDC_AUTHORITY}/token`;
 
   static async refreshTokens(refresh_token: string): Promise<OIDCTokens> {
@@ -80,6 +131,56 @@ export class OIDCClient {
 
     if (!response.ok) {
       throw new Error("Token refresh failed");
+    }
+
+    const data = await response.json();
+
+    return {
+      access_token: data.access_token,
+      id_token: data.id_token,
+      refresh_token: data.refresh_token,
+      expires_at: Date.now() + data.expires_in * 1000,
+    };
+  }
+
+  static async startAuthProcess() {
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: REDIRECT_URI,
+      response_type: RESPONSE_TYPE,
+      scope: SCOPE,
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+    });
+
+    const authUrl = `${OIDC_AUTHORITY}/authorize?${params.toString()}`;
+
+    return { authUrl, codeChallenge, codeVerifier };
+  }
+
+  static async handleCallback(code: string, codeVerifier: string) {
+    const params = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET!,
+      redirect_uri: REDIRECT_URI,
+      code: code,
+      code_verifier: codeVerifier,
+    });
+
+    const response = await fetch(this.tokenEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Token exchange failed");
     }
 
     const data = await response.json();

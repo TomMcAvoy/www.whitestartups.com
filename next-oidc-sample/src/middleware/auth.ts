@@ -4,10 +4,21 @@ import { createSession, getSession, setSessionCookie } from "./redis-store";
 import { ContextManager } from "@/lib/context";
 import { NextApiRequest, NextApiResponse } from "next";
 import { OIDCClient } from "@/lib/oidc/client";
-import { OIDCAuth } from "@/lib/oidc/oidcauth"; // Updated import
+import {
+  OIDCAuth,
+  verifyToken,
+  extractTokenFromHeader,
+} from "@/lib/oidc/oidcauth"; // Updated import
 import { TokenVerifier } from "@/lib/tokens/verify";
 import { SessionStore } from "@/lib/redis/store";
 import { ContextSymbols } from "@/lib/context/symbols";
+import { Redis } from "@upstash/redis";
+import { rateLimitMiddleware } from "@/middleware/rateLimit";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_URL!,
+  token: process.env.UPSTASH_REDIS_TOKEN!,
+});
 
 interface User {
   id: string;
@@ -32,6 +43,25 @@ export async function authenticateUser(
 }
 
 const SESSION_SYMBOL = Symbol("session");
+
+const CODE_CHALLENGE_SYMBOL = Symbol("code_challenge");
+const CODE_VERIFIER_SYMBOL = Symbol("code_verifier");
+
+export function setCodeChallenge(req: any, codeChallenge: string) {
+  req[CODE_CHALLENGE_SYMBOL] = codeChallenge;
+}
+
+export function getCodeChallenge(req: any): string | undefined {
+  return req[CODE_CHALLENGE_SYMBOL];
+}
+
+export function setCodeVerifier(req: any, codeVerifier: string) {
+  req[CODE_VERIFIER_SYMBOL] = codeVerifier;
+}
+
+export function getCodeVerifier(req: any): string | undefined {
+  return req[CODE_VERIFIER_SYMBOL];
+}
 
 export async function authMiddleware(request: NextRequest) {
   const sessionId = request.cookies.get("sessionId")?.value;
@@ -123,3 +153,36 @@ export async function protectedRoute(
     return res.status(401).json({ error: "Invalid token" });
   }
 }
+
+export async function middleware(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("authorization");
+
+    if (!authHeader) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const token = extractTokenFromHeader(authHeader);
+    await verifyToken(token);
+
+    return NextResponse.next();
+  } catch (error) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+}
+
+export async function refresh(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await rateLimitMiddleware(request, 5, 60);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  try {
+    // ...existing code...
+  } catch (error) {
+    // ...existing code...
+  }
+}
+
+export const config = {
+  matcher: ["/api/auth/protected/:path*"],
+};

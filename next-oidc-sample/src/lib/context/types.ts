@@ -13,8 +13,12 @@ export interface OIDCTokens {
 }
 
 export interface SessionData {
-  userId: string;
-  email: string;
   tokens: OIDCTokens;
-  created: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    // ...other user information...
+  };
+  // ...other session-related information...
 }
