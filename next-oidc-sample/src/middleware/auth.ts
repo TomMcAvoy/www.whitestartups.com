@@ -183,6 +183,10 @@ export async function refresh(request: NextRequest) {
   }
 }
 
+export function start(req: NextApiRequest, res: NextApiResponse) {
+  // Implementation of the start function
+}
+
 export const config = {
   matcher: ["/api/auth/protected/:path*"],
 };

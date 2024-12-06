@@ -12,13 +12,14 @@ export interface OIDCTokens {
   expires_at: number;
 }
 
-export interface SessionData {
-  tokens: OIDCTokens;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    // ...other user information...
-  };
-  // ...other session-related information...
-}
+// Remove the duplicate SessionData definition
+// export interface SessionData {
+//   tokens: OIDCTokens;
+//   user: {
+//     id: string;
+//     name: string;
+//     email: string;
+//     // ...other user information...
+//   };
+//   // ...other session-related information...
+// }

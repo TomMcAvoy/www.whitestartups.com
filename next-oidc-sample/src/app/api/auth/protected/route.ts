@@ -17,7 +17,8 @@ export default async function handler(
       const user = await verifyToken(token);
       res.status(200).json({ user });
     } catch (error) {
-      res.status(401).json({ error: "Invalid token" });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      res.status(500).json({ error: "Failed to handle protected route" });
     }
   } else {
     res.setHeader("Allow", ["GET"]);

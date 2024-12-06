@@ -1,13 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { redis } from "./client";
-import type { SessionData, OIDCTokens } from "../context/types";
+import type { SessionData, OIDCTokens } from "@/types/session-types";
 
+/**
+ * Manages sessions in Redis.
+ */
 export class SessionStore {
   // Key prefixes for different types of data
   private static readonly SESSION_PREFIX = "session:";
   private static readonly STATE_PREFIX = "state:";
   private static readonly TOKEN_PREFIX = "token:";
 
-  // Session Management
+  /**
+   * Creates a new session.
+   * @param {SessionData} data - The session data.
+   * @returns {Promise<string>} The session ID.
+   */
   static async createSession(data: SessionData): Promise<string> {
     const sessionId = crypto.randomUUID();
     await redis.set(`${this.SESSION_PREFIX}${sessionId}`, JSON.stringify(data));

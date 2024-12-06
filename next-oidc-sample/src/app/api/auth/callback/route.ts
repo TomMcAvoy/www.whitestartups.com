@@ -4,6 +4,11 @@ import { OIDCClient } from "@/lib/oidc/client";
 import { SessionStore } from "@/lib/redis/store";
 import { SessionData } from "@/types/session-types";
 
+/**
+ * Handles the OIDC callback.
+ * @param {NextApiRequest} req - The request object.
+ * @param {NextApiResponse} res - The response object.
+ */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -25,13 +30,22 @@ export default async function handler(
       // Exchange the authorization code for tokens
       const tokens = await OIDCClient.handleCallback(code, codeVerifier);
 
-      // Handle tokens and create a new session
-      const sessionId = await SessionStore.createSession({
+      // Extract user information from tokens (assuming tokens contain user info)
+      const user = {
+        id: tokens.id_token, // Replace with actual user ID extraction logic
+        name: "User Name", // Replace with actual user name extraction logic
+        email: "user@example.com", // Replace with actual user email extraction logic
+      };
+
+      // Create a new session instance
+      const sessionData = new SessionData({
+        authenticated: true,
         tokens,
-        user: {
-          /* user information from tokens */
-        },
+        user,
       });
+
+      // Handle tokens and create a new session
+      const sessionId = await SessionStore.createSession(sessionData);
 
       // Set the session ID in a cookie
       res.setHeader("Set-Cookie", `sessionId=${sessionId}; Path=/; HttpOnly`);
@@ -39,6 +53,7 @@ export default async function handler(
       // Return the tokens in the response
       res.status(200).json(tokens);
     } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       res.status(500).json({ error: "Failed to handle callback" });
     }
   } else {

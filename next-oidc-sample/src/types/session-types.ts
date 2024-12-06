@@ -7,7 +7,9 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// src/types/session-types.ts
+/**
+ * Represents a session.
+ */
 export interface Session {
   authenticated: boolean;
   id?: string;
@@ -24,6 +26,23 @@ export interface Session {
   [key: string]: unknown;
 }
 
+/**
+ * Represents session data.
+ */
+export interface SessionData {
+  tokens: OIDCTokens;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    // ...other user information...
+  };
+  // ...other session-related information...
+}
+
+/**
+ * Manages session data.
+ */
 export class SessionData implements Session {
   authenticated: boolean;
   id?: string;
@@ -46,6 +65,9 @@ export class SessionData implements Session {
     // ...initialize other properties...
   }
 
+  /**
+   * Saves the session data to Redis.
+   */
   async save() {
     if (this.id) {
       await redis.set(this.id, JSON.stringify(this));
@@ -54,6 +76,9 @@ export class SessionData implements Session {
     }
   }
 
+  /**
+   * Destroys the session data in Redis.
+   */
   async destroy() {
     if (this.id) {
       await redis.del(this.id);
@@ -62,6 +87,11 @@ export class SessionData implements Session {
     }
   }
 
+  /**
+   * Loads session data from Redis.
+   * @param {string} id - The session ID.
+   * @returns {Promise<SessionData | null>} The session data or null if not found.
+   */
   static async load(id: string): Promise<SessionData | null> {
     const data = await redis.get(id);
     return typeof data === "string" ? new SessionData(JSON.parse(data)) : null;

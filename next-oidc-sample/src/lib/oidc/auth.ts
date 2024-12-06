@@ -1,4 +1,4 @@
-import { OIDCConfig } from "@/lib/oidc/config";
+import { getOIDCConfig } from "@/lib/oidc/config";
 import { OIDCState, OIDCTokens } from "@/lib/context/types";
 import {
   generateCodeVerifier,
@@ -15,10 +15,10 @@ export class OIDCAuth {
     const code_challenge = await generateCodeChallenge(code_verifier);
 
     const params = new URLSearchParams({
-      client_id: OIDCConfig.client_id,
+      client_id: getOIDCConfig.client_id,
       response_type: "code",
-      scope: OIDCConfig.scope,
-      redirect_uri: OIDCConfig.redirect_uri,
+      scope: getOIDCConfig.scope,
+      redirect_uri: getOIDCConfig.redirect_uri,
       state,
       nonce,
       code_challenge,
@@ -26,12 +26,12 @@ export class OIDCAuth {
     });
 
     return {
-      url: `${OIDCConfig.authority}/authorize?${params.toString()}`,
+      url: `${getOIDCConfig.authority}/authorize?${params.toString()}`,
       state: {
         state,
         nonce,
         code_verifier,
-        redirect_uri: OIDCConfig.redirect_uri,
+        redirect_uri: getOIDCConfig.redirect_uri,
       },
     };
   }

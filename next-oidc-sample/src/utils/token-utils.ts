@@ -10,6 +10,12 @@ if (!secretKey) {
   throw new Error("SECRET_KEY environment variable is not defined");
 }
 
+/**
+ * Verifies a JWT token.
+ * @param {string} token - The token to verify.
+ * @param {string} secret - The secret key.
+ * @returns {Promise<JWTPayload | null>} The token payload or null if verification fails.
+ */
 export async function verifyToken(
   token: string,
   secret: string
@@ -26,6 +32,11 @@ export async function verifyToken(
   }
 }
 
+/**
+ * Refreshes the access token.
+ * @param {SessionData} session - The session data.
+ * @returns {Promise<string>} The new access token.
+ */
 export async function refreshTokens(session: SessionData): Promise<string> {
   try {
     const newAccessToken = await refreshAccessToken(
@@ -40,6 +51,11 @@ export async function refreshTokens(session: SessionData): Promise<string> {
   }
 }
 
+/**
+ * Sets the token expiry times.
+ * @param {any} context - The context object.
+ * @param {SessionData} session - The session data.
+ */
 export function setTokenExpiry(context: any, session: SessionData): void {
   context.refresh_token = session.refresh_token;
   context.id_token = session.id_token;
@@ -49,6 +65,11 @@ export function setTokenExpiry(context: any, session: SessionData): void {
   context.id_token_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day expiry
 }
 
+/**
+ * Generates an access token.
+ * @param {any} user - The user data.
+ * @returns {Promise<string>} The access token.
+ */
 export async function generateAccessToken(user: any): Promise<string> {
   const payload = {
     sub: user.id,
@@ -64,6 +85,11 @@ export async function generateAccessToken(user: any): Promise<string> {
   return sign(payload, secretKey);
 }
 
+/**
+ * Generates a refresh token.
+ * @param {any} user - The user data.
+ * @returns {Promise<string>} The refresh token.
+ */
 export async function generateRefreshToken(user: any): Promise<string> {
   const payload = {
     sub: user.id,
@@ -78,6 +104,11 @@ export async function generateRefreshToken(user: any): Promise<string> {
   return sign(payload, secretKey);
 }
 
+/**
+ * Generates an ID token.
+ * @param {any} user - The user data.
+ * @returns {Promise<string>} The ID token.
+ */
 export async function generateIdToken(user: any): Promise<string> {
   const payload = {
     sub: user.id,

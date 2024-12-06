@@ -10,7 +10,8 @@ export default async function handler(
     try {
       res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to log out" });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      res.status(500).json({ error: "Failed to handle logout" });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
