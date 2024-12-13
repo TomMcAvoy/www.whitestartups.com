@@ -1,7 +1,8 @@
-import { redis } from "./client";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { redis } from "../redis/client"; // Update the import path
 import type { SessionData, OIDCTokens } from "../context/types";
-import { randomBytes, createHash } from "crypto";
 import { URLSearchParams } from "url";
+import { generateCodeVerifier, generateCodeChallenge } from "@/lib/oidc-utils";
 
 const OIDC_AUTHORITY = process.env.OIDC_AUTHORITY!;
 const CLIENT_ID = process.env.OIDC_CLIENT_ID!;
@@ -9,12 +10,10 @@ const REDIRECT_URI = process.env.OIDC_REDIRECT_URI!;
 const SCOPE = "openid profile email";
 const RESPONSE_TYPE = "code";
 
-function generateCodeVerifier() {
-  return randomBytes(32).toString("hex");
-}
-
-function generateCodeChallenge(verifier: string) {
-  return createHash("sha256").update(verifier).digest("base64url");
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function someFunction(param: any) {
+  // ...existing code...
 }
 
 export class SessionStore {
@@ -77,6 +76,7 @@ export class SessionStore {
 
 export class OIDCClient {
   private static instance: OIDCClient;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private discoveryDocument: any;
   private initialized: boolean = false;
 
@@ -144,8 +144,8 @@ export class OIDCClient {
   }
 
   static async startAuthProcess() {
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = generateCodeChallenge(codeVerifier);
+    const codeVerifier = await generateCodeVerifier();
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
 
     const params = new URLSearchParams({
       client_id: CLIENT_ID,

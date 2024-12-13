@@ -1,12 +1,5 @@
-Imports the `localFont` function from the `next/font/local` module. This function is used to load and use custom fonts in a Next.js application.
 import localFont from "next/font/local";
 import "./globals.css";
-/**
- * Defines two custom fonts, `geistSans` and `geistMono`, using the `localFont` function from `next/font/local`.
- * The `geistSans` font is loaded from the `./fonts/GeistVF.woff` file, and the `geistMono` font is loaded from the `./fonts/GeistMonoVF.woff` file.
- * Both fonts have a weight range of 100 to 900.
- * The fonts are assigned to CSS variables `--font-geist-sans` and `--font-geist-mono`, respectively, which can be used in the application's CSS.
- */
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

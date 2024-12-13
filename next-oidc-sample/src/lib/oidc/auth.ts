@@ -9,16 +9,17 @@ import {
 
 export class OIDCAuth {
   static async createAuthRequest(): Promise<{ url: string; state: OIDCState }> {
+    const config = getOIDCConfig();
     const state = crypto.randomUUID();
     const nonce = crypto.randomUUID();
     const code_verifier = generateCodeVerifier();
     const code_challenge = await generateCodeChallenge(code_verifier);
 
     const params = new URLSearchParams({
-      client_id: getOIDCConfig.client_id,
+      client_id: config.client.id,
       response_type: "code",
-      scope: getOIDCConfig.scope,
-      redirect_uri: getOIDCConfig.redirect_uri,
+      scope: config.scopes.join(" "),
+      redirect_uri: config.client.redirectUri,
       state,
       nonce,
       code_challenge,
@@ -26,12 +27,12 @@ export class OIDCAuth {
     });
 
     return {
-      url: `${getOIDCConfig.authority}/authorize?${params.toString()}`,
+      url: `${config.endpoints.authorization}?${params.toString()}`,
       state: {
         state,
         nonce,
         code_verifier,
-        redirect_uri: getOIDCConfig.redirect_uri,
+        redirect_uri: config.client.redirectUri,
       },
     };
   }

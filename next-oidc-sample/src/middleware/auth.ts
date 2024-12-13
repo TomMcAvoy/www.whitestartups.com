@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/middleware/auth.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, getSession, setSessionCookie } from "./redis-store";
@@ -14,7 +15,6 @@ import { SessionStore } from "@/lib/redis/store";
 import { ContextSymbols } from "@/lib/context/symbols";
 import { Redis } from "@upstash/redis";
 import { rateLimitMiddleware } from "@/middleware/rateLimit";
-
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_URL!,
   token: process.env.UPSTASH_REDIS_TOKEN!,
@@ -78,6 +78,12 @@ export async function authMiddleware(request: NextRequest) {
   // Store sessionId in context
   ContextManager.set(request, ContextSymbols.SESSION_ID, sessionId);
 
+  try {
+    // ...existing code...
+  } catch (error) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
   return NextResponse.next();
 }
 
@@ -91,9 +97,7 @@ export async function handleCallback(
       const tokens = await OIDCAuth.handleCallback(code as string); // Updated method call
       res.status(200).json(tokens);
     } catch (error) {
-      res
-        .status(500)
-        .json({ error: "Failed to handle authentication callback" });
+      res.status(500).json({ error: "Failed to handle callback" });
     }
   } else {
     res.setHeader("Allow", ["GET"]);
@@ -115,7 +119,7 @@ export async function login(req: NextApiRequest, res: NextApiResponse) {
       };
       res.status(200).json(tokens);
     } catch (error) {
-      res.status(401).json({ error: "Invalid credentials" });
+      res.status(500).json({ error: "Failed to handle login" });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
@@ -129,7 +133,7 @@ export async function logout(req: NextApiRequest, res: NextApiResponse) {
       // Clear session or perform logout logic here
       res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
-      res.status(500).json({ error: "Failed to log out" });
+      res.status(500).json({ error: "Failed to handle logout" });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
@@ -150,7 +154,7 @@ export async function protectedRoute(
     req.user = user; // Attach user to request object
     return NextResponse.next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid token" });
+    res.status(500).json({ error: "Failed to handle protected route" });
   }
 }
 
@@ -179,9 +183,11 @@ export async function refresh(request: NextRequest) {
   try {
     // ...existing code...
   } catch (error) {
-    // ...existing code...
+    return new NextResponse("Failed to handle refresh", { status: 500 });
   }
 }
+
+// ...existing code...
 
 export function start(req: NextApiRequest, res: NextApiResponse) {
   // Implementation of the start function

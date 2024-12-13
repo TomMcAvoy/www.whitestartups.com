@@ -1,6 +1,5 @@
 "use client";
 import useSession from "@/hooks/useSession";
-Imports the React library, which is a JavaScript library for building user interfaces.
 import React from "react";
 import { SessionData } from "@/types/session-types";
 

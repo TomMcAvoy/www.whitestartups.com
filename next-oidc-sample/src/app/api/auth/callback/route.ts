@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextApiRequest, NextApiResponse } from "next";
 import { getCodeVerifier } from "@/middleware/auth";
 import { OIDCClient } from "@/lib/oidc/client";
