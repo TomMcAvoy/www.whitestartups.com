@@ -12,20 +12,20 @@ export const getOIDCConfig = () => ({
     secret: process.env.GOOGLE_CLIENT_SECRET,
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
   },
-  scopes: process.env.OIDC_SCOPES?.split(' ') || ['openid', 'email', 'profile'],
+  scopes: process.env.OIDC_SCOPES?.split(" ") || ["openid", "email", "profile"],
 });
 
 // Validate required environment variables
 const requiredEnvVars = [
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'GOOGLE_REDIRECT_URI',
-  'OIDC_ISSUER',
-  'OIDC_DISCOVERY_URL',
-  'OIDC_TOKEN_ENDPOINT',
-  'OIDC_USERINFO_ENDPOINT',
-  'OIDC_AUTH_ENDPOINT',
-  'OIDC_JWKS_URI',
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_REDIRECT_URI",
+  "OIDC_ISSUER",
+  "OIDC_DISCOVERY_URL",
+  "OIDC_TOKEN_ENDPOINT",
+  "OIDC_USERINFO_ENDPOINT",
+  "OIDC_AUTH_ENDPOINT",
+  "OIDC_JWKS_URI",
 ] as const;
 
 for (const envVar of requiredEnvVars) {

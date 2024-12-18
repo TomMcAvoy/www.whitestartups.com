@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: client-app-1
+  security:
+    oauth2:
+      client:
+        registration:
+          whitestartups:
+            client-id: client-app-1
+            client-secret: secret1
+            scope:
+              - openid
+              - profile
+              - email
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8080/login/oauth2/code/whitestartups
+            client-authentication-method: client_secret_basic
+        provider:
+          whitestartups:
+            issuer-uri: http://localhost:9000
+            authorization-uri: http://localhost:9000/oauth2/authorize
+            token-uri: http://localhost:9000/oauth2/token
+            user-info-uri: http://localhost:9000/userinfo
+            jwk-set-uri: http://localhost:9000/oauth2/jwks
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: whitestartups_oauth2
+      authentication-database: admin
+      auto-index-creation: true
+      connect-timeout: 5000
+      socket-timeout: 5000
+      max-wait-time: 5000
+      retry-writes: false
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 5000
+      connect-timeout: 5000
+      lettuce:
+        shutdown-timeout: 200ms
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  session:
+    store-type: redis
+    timeout: 30m
+    redis:
+      namespace: whitestartups:session
+      flush-mode: on_save
+      repository-type: indexed
+
+management:
+  health:
+    mongodb:
+      enabled: true
+    redis:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG

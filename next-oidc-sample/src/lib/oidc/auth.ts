@@ -6,6 +6,7 @@ import {
   exchangeCodeForTokens,
   refreshTokens,
 } from "@/lib/oidc-utils";
+import { SessionStore } from "../redis/store";
 
 export class OIDCAuth {
   static async createAuthRequest(): Promise<{ url: string; state: OIDCState }> {
@@ -26,6 +27,8 @@ export class OIDCAuth {
       code_challenge_method: "S256",
     });
 
+    await SessionStore.storeOIDCState(state, { nonce, code_verifier });
+
     return {
       url: `${config.endpoints.authorization}?${params.toString()}`,
       state: {
@@ -35,20 +38,5 @@ export class OIDCAuth {
         redirect_uri: config.client.redirectUri,
       },
     };
-  }
-
-  static async handleCallback(
-    code: string,
-    storedState: OIDCState
-  ): Promise<OIDCTokens> {
-    return await exchangeCodeForTokens({
-      code,
-      code_verifier: storedState.code_verifier,
-      redirect_uri: storedState.redirect_uri,
-    });
-  }
-
-  static async refreshTokens(refresh_token: string): Promise<OIDCTokens> {
-    return await refreshTokens(refresh_token);
   }
 }

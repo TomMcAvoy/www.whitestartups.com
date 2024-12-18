@@ -1,0 +1,5 @@
+/Users/thomasmcavoy/www/www.whitestartups.com/spring-oidc-sample/auth-system/auth-server/src/main/java/com/whitestartups/authserver/controller/LogoutController.java
+/Users/thomasmcavoy/www/www.whitestartups.com/spring-oidc-sample/auth-system/auth-server/src/main/java/com/whitestartups/authserver/config/RedisConfig.java
+/Users/thomasmcavoy/www/www.whitestartups.com/spring-oidc-sample/auth-system/auth-server/src/main/java/com/whitestartups/authserver/config/SecurityConfig.java
+/Users/thomasmcavoy/www/www.whitestartups.com/spring-oidc-sample/auth-system/auth-server/src/main/java/com/whitestartups/authserver/AuthServerApplication.java
+/Users/thomasmcavoy/www/www.whitestartups.com/spring-oidc-sample/auth-system/auth-server/src/main/java/com/whitestartups/authserver/config/MongoConfig.java

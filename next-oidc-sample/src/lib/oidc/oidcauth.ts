@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { OIDCConfig } from "@/lib/oidc/config";
+import { getOIDCConfig } from "@/lib/oidc/config";
 import { OIDCState, OIDCTokens } from "@/lib/context/types";
 import {
   generateCodeVerifier,
@@ -8,6 +8,8 @@ import {
   refreshTokens,
 } from "@/lib/oidc-utils";
 import jwt from "jsonwebtoken";
+import { SessionStore } from "../redis/store";
+import { TokenVerifier } from "@/lib/tokens/verify";
 
 interface TokenPayload {
   sub: string;
@@ -17,22 +19,13 @@ interface TokenPayload {
   iat?: number;
 }
 
-export const verifyToken = (token: string): Promise<TokenPayload> => {
-  return new Promise((resolve, reject) => {
-    if (!process.env.JWT_SECRET) {
-      reject(new Error("JWT_SECRET is not configured"));
-      return;
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      resolve(decoded as TokenPayload);
-    });
-  });
+export const verifyToken = async (token: string): Promise<TokenPayload> => {
+  const verifier = new TokenVerifier(process.env.JWT_SECRET!);
+  const payload = await verifier.verifyToken(token);
+  if (!payload) {
+    throw new Error("Token verification failed");
+  }
+  return payload;
 };
 
 export const createToken = (payload: Partial<TokenPayload>): string => {
@@ -74,29 +67,32 @@ export const extractTokenFromHeader = (authHeader?: string): string => {
 
 export class OIDCAuth {
   static async createAuthRequest(): Promise<{ url: string; state: OIDCState }> {
+    const config = getOIDCConfig();
     const state = crypto.randomUUID();
     const nonce = crypto.randomUUID();
     const code_verifier = generateCodeVerifier();
     const code_challenge = await generateCodeChallenge(code_verifier);
 
     const params = new URLSearchParams({
-      client_id: OIDCConfig.client_id,
+      client_id: config.client.id,
       response_type: "code",
-      scope: OIDCConfig.scope,
-      redirect_uri: OIDCConfig.redirect_uri,
+      scope: config.scopes.join(" "),
+      redirect_uri: config.client.redirectUri,
       state,
       nonce,
       code_challenge,
       code_challenge_method: "S256",
     });
 
+    await SessionStore.storeOIDCState(state, { nonce, code_verifier });
+
     return {
-      url: `${OIDCConfig.authority}/authorize?${params.toString()}`,
+      url: `${config.endpoints.authorization}?${params.toString()}`,
       state: {
         state,
         nonce,
         code_verifier,
-        redirect_uri: OIDCConfig.redirect_uri,
+        redirect_uri: config.client.redirectUri,
       },
     };
   }
@@ -105,16 +101,23 @@ export class OIDCAuth {
     code: string,
     storedState: OIDCState
   ): Promise<OIDCTokens> {
-    try {
-      return await exchangeCodeForTokens({
-        code,
-        code_verifier: storedState.code_verifier,
-        redirect_uri: storedState.redirect_uri,
-      });
-    } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      throw new Error("Failed to handle callback");
+    const oidcState = await SessionStore.getOIDCState(storedState.state);
+    if (!oidcState) {
+      throw new Error("Invalid state");
     }
+
+    const tokens = await exchangeCodeForTokens({
+      code,
+      code_verifier: oidcState.code_verifier,
+      redirect_uri: storedState.redirect_uri,
+    });
+
+    await SessionStore.clearOIDCState(storedState.state);
+
+    // Store tokens with expiry time
+    await SessionStore.storeTokens(tokens);
+
+    return tokens;
   }
 
   static async refreshTokens(refresh_token: string): Promise<OIDCTokens> {

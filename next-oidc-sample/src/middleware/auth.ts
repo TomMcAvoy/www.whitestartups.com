@@ -1,67 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/middleware/auth.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, getSession, setSessionCookie } from "./redis-store";
 import { ContextManager } from "@/lib/context";
 import { NextApiRequest, NextApiResponse } from "next";
-import { OIDCClient } from "@/lib/oidc/client";
-import {
-  OIDCAuth,
-  verifyToken,
-  extractTokenFromHeader,
-} from "@/lib/oidc/oidcauth"; // Updated import
-import { TokenVerifier } from "@/lib/tokens/verify";
+import { OIDCAuth } from "@/lib/oidc/oidcauth";
 import { SessionStore } from "@/lib/redis/store";
 import { ContextSymbols } from "@/lib/context/symbols";
-import { Redis } from "@upstash/redis";
 import { rateLimitMiddleware } from "@/middleware/rateLimit";
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_URL!,
-  token: process.env.UPSTASH_REDIS_TOKEN!,
-});
-
-interface User {
-  id: string;
-  email: string;
-  password: string;
-}
-
-// Mock user data
-const users: User[] = [
-  { id: "1", email: "user@example.com", password: "password123" },
-  // Add more users as needed
-];
-
-export async function authenticateUser(
-  email: string,
-  password: string
-): Promise<User | null> {
-  const user = users.find(
-    (user) => user.email === email && user.password === password
-  );
-  return user || null;
-}
-
-const SESSION_SYMBOL = Symbol("session");
-
-const CODE_CHALLENGE_SYMBOL = Symbol("code_challenge");
-const CODE_VERIFIER_SYMBOL = Symbol("code_verifier");
-
-export function setCodeChallenge(req: any, codeChallenge: string) {
-  req[CODE_CHALLENGE_SYMBOL] = codeChallenge;
-}
-
-export function getCodeChallenge(req: any): string | undefined {
-  return req[CODE_CHALLENGE_SYMBOL];
-}
-
-export function setCodeVerifier(req: any, codeVerifier: string) {
-  req[CODE_VERIFIER_SYMBOL] = codeVerifier;
-}
-
-export function getCodeVerifier(req: any): string | undefined {
-  return req[CODE_VERIFIER_SYMBOL];
-}
+import { verifyToken, extractTokenFromHeader } from "@/lib/tokens/verify";
+import { getSession, updateSession } from "@/lib/oidc-utils"; // Ensure correct import
 
 export async function authMiddleware(request: NextRequest) {
   const sessionId = request.cookies.get("sessionId")?.value;
@@ -70,8 +16,42 @@ export async function authMiddleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  const session = await SessionStore.getSession(sessionId);
+  let session = await getSession(sessionId);
+  const now = new Date();
+
   if (!session) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
+  // Check if access token is expired
+  if (now > new Date(session.accessTokenExpiresAt)) {
+    try {
+      // Refresh tokens using the refresh token
+      const tokens = await OIDCAuth.refreshTokens(session.tokens.refresh_token);
+      await updateSession(sessionId, { tokens });
+      session = await getSession(sessionId);
+    } catch (error) {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+  }
+
+  // Check if ID token is expired
+  if (now > new Date(session.idTokenExpiresAt)) {
+    try {
+      // Refresh tokens using the refresh token
+      const tokens = await OIDCAuth.refreshTokens(session.tokens.refresh_token);
+      await updateSession(sessionId, { tokens });
+      session = await getSession(sessionId);
+    } catch (error) {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+  }
+
+  // Check if refresh token is expired
+  if (
+    session.refreshTokenExpiresAt &&
+    now > new Date(session.refreshTokenExpiresAt)
+  ) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
@@ -93,8 +73,18 @@ export async function handleCallback(
 ) {
   if (req.method === "GET") {
     try {
-      const { code } = req.query;
-      const tokens = await OIDCAuth.handleCallback(code as string); // Updated method call
+      const { code, state } = req.query;
+      const storedState = await SessionStore.getOIDCState(state as string);
+      if (!storedState) {
+        return res.status(400).json({ error: "Invalid state" });
+      }
+      const tokens = await OIDCAuth.handleCallback(code as string, storedState);
+      await SessionStore.clearOIDCState(state as string);
+      await SessionStore.createSession({
+        userId: tokens.id_token, // Use a unique identifier from the ID token
+        email: tokens.email, // Extract email from the ID token
+        tokens,
+      });
       res.status(200).json(tokens);
     } catch (error) {
       res.status(500).json({ error: "Failed to handle callback" });
@@ -108,18 +98,10 @@ export async function handleCallback(
 export async function login(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
     try {
-      const { username, password } = req.body;
-      const user = await authenticateUser(username, password);
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-      // Generate tokens and create session here
-      const tokens = {
-        /* token generation logic */
-      };
-      res.status(200).json(tokens);
+      const { authUrl, state } = await OIDCAuth.createAuthRequest();
+      res.status(200).json({ authUrl, state });
     } catch (error) {
-      res.status(500).json({ error: "Failed to handle login" });
+      res.status(500).json({ error: "Failed to initiate login" });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
@@ -130,7 +112,10 @@ export async function login(req: NextApiRequest, res: NextApiResponse) {
 export async function logout(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
     try {
-      // Clear session or perform logout logic here
+      const sessionId = req.cookies.get("sessionId")?.value;
+      if (sessionId) {
+        await SessionStore.delete(sessionId);
+      }
       res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to handle logout" });

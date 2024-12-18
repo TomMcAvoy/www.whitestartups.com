@@ -9,7 +9,9 @@ export interface OIDCTokens {
   access_token: string;
   id_token: string;
   refresh_token?: string;
-  expires_at: number;
+  expires_at: number; // Access token expiry
+  id_token_expires_at: number; // ID token expiry
+  refresh_token_expires_at?: number; // Refresh token expiry (optional)
 }
 
 // Remove the duplicate SessionData definition

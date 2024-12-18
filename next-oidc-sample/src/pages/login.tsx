@@ -18,7 +18,16 @@ export default function LoginPage() {
         ?.split("=")[1];
 
       if (sessionId) {
-        const session = await SessionStore.getSession(sessionId);
+        const session = (await SessionStore.getSession(
+          sessionId
+        )) as unknown as {
+          code_challenge: string;
+          code_verifier: string;
+          user: { name: string };
+          accessTokenExpiresAt: string;
+          idTokenExpiresAt: string;
+          refreshTokenExpiresAt?: string;
+        };
         setSession({ ...session, sessionId });
         if (session) {
           setCodeChallenge(session.code_challenge);
@@ -39,16 +48,19 @@ export default function LoginPage() {
   };
 
   const handleLogout = async () => {
-    const sessionId = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("sessionId="))
-      ?.split("=")[1];
-
-    if (sessionId) {
-      await SessionStore.delete(sessionId);
-      setSession(null);
-      setCodeChallenge("");
-      setCodeVerifier("");
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (response.ok) {
+        setSession(null);
+        setCodeChallenge("");
+        setCodeVerifier("");
+      } else {
+        console.error("Failed to log out:", await response.json());
+      }
+    } catch (error) {
+      console.error("Failed to log out:", error);
     }
   };
 
@@ -146,6 +158,20 @@ export function getCodeVerifier(req: any): string | undefined {
           <p>Logged in as: {session.user.name}</p>
           <p>Code Challenge: {codeChallenge}</p>
           <p>Code Verifier: {codeVerifier}</p>
+          <p>
+            Access Token Expires At:{" "}
+            {new Date(session.accessTokenExpiresAt).toLocaleString()}
+          </p>
+          <p>
+            ID Token Expires At:{" "}
+            {new Date(session.idTokenExpiresAt).toLocaleString()}
+          </p>
+          {session.refreshTokenExpiresAt && (
+            <p>
+              Refresh Token Expires At:{" "}
+              {new Date(session.refreshTokenExpiresAt).toLocaleString()}
+            </p>
+          )}
         </div>
       ) : (
         <p>You are not logged in.</p>

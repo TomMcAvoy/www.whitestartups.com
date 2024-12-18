@@ -1,5 +1,6 @@
 import { redis } from "./client";
 import type { SessionData } from "../context/types";
+import crypto from "crypto";
 
 export class SessionStore {
   static async create(sessionData: SessionData): Promise<string> {

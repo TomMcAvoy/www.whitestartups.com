@@ -1,0 +1,4 @@
+com/whitestartups/authserver/config/RedisConfig.class
+com/whitestartups/authserver/config/SecurityConfig.class
+com/whitestartups/authserver/config/MongoConfig.class
+com/whitestartups/authserver/AuthServerApplication.class

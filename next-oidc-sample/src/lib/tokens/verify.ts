@@ -37,10 +37,21 @@ export class TokenVerifier {
     }
   }
 
-  verifyToken(token: string) {
+  async verifyToken(
+    token: string,
+    options: VerifyOptions = {}
+  ): Promise<TokenPayload | null> {
+    const tokenType = TokenVerifier.detectTokenType(token);
+
     try {
-      const decoded = jwt.verify(token, this.publicKey);
-      return decoded;
+      switch (tokenType) {
+        case "jwt":
+          return await TokenVerifier.verifyJWT(token, options);
+        case "paseto":
+          return await TokenVerifier.verifyPASETO(token, options);
+        default:
+          throw new Error("Unsupported token format");
+      }
     } catch (error) {
       console.error("Token verification failed:", error);
       return null;

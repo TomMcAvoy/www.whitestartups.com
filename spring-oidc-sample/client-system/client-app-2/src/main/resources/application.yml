@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: client-app-2
+  security:
+    oauth2:
+      client:
+        registration:
+          whitestartups:
+            client-id: client-app-2
+            client-secret: secret
+            scope:
+              - openid
+              - profile
+              - email
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8081/login/oauth2/code/whitestartups
+        provider:
+          whitestartups:
+            issuer-uri: http://localhost:9000

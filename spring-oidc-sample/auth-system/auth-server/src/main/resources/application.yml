@@ -1,0 +1,12 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: whitestartups-auth-server
+
+logging:
+  level:
+    root: INFO
+    com.whitestartups: DEBUG
+    org.springframework.security: DEBUG

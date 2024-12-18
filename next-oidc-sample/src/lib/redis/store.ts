@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { redis } from "./client";
 import type { SessionData, OIDCTokens } from "@/types/session-types";
+import crypto from "crypto";
 
 /**
  * Manages sessions in Redis.
@@ -18,7 +19,12 @@ export class SessionStore {
    */
   static async createSession(data: SessionData): Promise<string> {
     const sessionId = crypto.randomUUID();
-    await redis.set(`${this.SESSION_PREFIX}${sessionId}`, JSON.stringify(data));
+    await redis.set(
+      `${this.SESSION_PREFIX}${sessionId}`,
+      JSON.stringify(data),
+      "EX",
+      3600
+    ); // 1 hour expiry
     return sessionId;
   }
 
@@ -40,7 +46,9 @@ export class SessionStore {
         ...existing,
         ...data,
         updated: new Date().toISOString(),
-      })
+      }),
+      "EX",
+      3600 // 1 hour expiry
     );
   }
 
